@@ -46,18 +46,14 @@ python -m toolsgen.cli generate \
   --model gpt-4o-mini
 ```
 
-### End-to-end example
+## Python Usage
 
-- See `examples/basic` for a runnable example with a minimal `tools.json` and scripts for Windows PowerShell and bash.
-  - Windows:
-    ```powershell
-    ./examples/basic/run.ps1
-    ```
-  - macOS/Linux:
-    ```bash
-    bash ./examples/basic/run.sh
-    ```
-  The run writes `examples/basic/out/manifest.json` summarizing the generation.
+See `examples/basic/` for a minimal Python example:
+
+```bash
+cd examples/basic
+python example.py
+```
 
 ## Run Tests
 

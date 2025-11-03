@@ -208,3 +208,6 @@ __marimo__/
 
 # Cursor
 .cursor/
+
+# Example outputs
+examples/*/output/
