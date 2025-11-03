@@ -122,10 +122,9 @@ def _generate_sample(
         pass  # Continue without judge data
 
     # 5. Create record
-    language_code = language[:2].lower() if len(language) >= 2 else "en"
     return Record(
         id=record_id,
-        language=language_code,
+        language=language,
         tools=tools,
         messages=[Message(role="user", content=user_request)],
         assistant_calls=tool_calls,
