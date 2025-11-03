@@ -227,12 +227,12 @@ graph TB
 
     Judge --> Output["📦 Output Generation<br/>---<br/>• train.jsonl / val.jsonl<br/>• manifest.json"]
 
-    style Input fill:#e1f5ff
-    style Sampling fill:#fff4e1
-    style ProbGen fill:#f0e1ff
-    style ToolCall fill:#e1ffe1
-    style Judge fill:#ffe1e1
-    style Output fill:#f5f5f5
+    style Input fill:#e1f5ff,stroke:#333,stroke-width:2px,color:#000
+    style Sampling fill:#fff4e1,stroke:#333,stroke-width:2px,color:#000
+    style ProbGen fill:#f0e1ff,stroke:#333,stroke-width:2px,color:#000
+    style ToolCall fill:#e1ffe1,stroke:#333,stroke-width:2px,color:#000
+    style Judge fill:#ffe1e1,stroke:#333,stroke-width:2px,color:#000
+    style Output fill:#f5f5f5,stroke:#333,stroke-width:2px,color:#000
 ```
 
 ### Core Components
