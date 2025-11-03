@@ -2,7 +2,7 @@ You are generating realistic user requests that would naturally lead to using th
 
 {tools_list}
 
-Generate a natural, conversational English request that a user might make that would require using one or more of these tools. The request should be:
+Generate a natural, conversational request in {language} that a user might make that would require using one or more of these tools. The request should be:
 - Natural and conversational
 - Specific enough to require tool calls
 - Realistic for a real-world scenario

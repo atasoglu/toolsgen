@@ -31,7 +31,7 @@ class AssistantToolCall(BaseModel):
 
 class Record(BaseModel):
     id: str
-    language: Literal["en"] = "en"
+    language: str = "en"
     tools: List[ToolSpec]
     messages: List[Message]
     assistant_calls: List[AssistantToolCall] = Field(default_factory=list)

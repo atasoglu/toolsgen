@@ -11,11 +11,14 @@ from .schema import AssistantToolCall, ToolSpec
 PROMPTS_DIR = Path(__file__).parent / "prompts"
 
 
-def create_problem_generation_prompt(tools: List[ToolSpec]) -> str:
+def create_problem_generation_prompt(
+    tools: List[ToolSpec], language: str = "english"
+) -> str:
     """Create a prompt for generating natural language user requests.
 
     Args:
         tools: List of available tools.
+        language: Language name for user requests (e.g., "english", "turkish", "spanish").
 
     Returns:
         System prompt for generating user requests.
@@ -27,7 +30,7 @@ def create_problem_generation_prompt(tools: List[ToolSpec]) -> str:
     tools_list = "\n".join(tools_desc)
 
     template = (PROMPTS_DIR / "problem_generation.txt").read_text(encoding="utf-8")
-    return template.format(tools_list=tools_list)
+    return template.format(tools_list=tools_list, language=language)
 
 
 def create_problem_generation_user_message() -> str:

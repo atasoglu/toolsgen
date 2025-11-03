@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional
 from tqdm import tqdm
 
 from .config import GenerationConfig, ModelConfig
-from .io.writer import write_dataset_jsonl
+from .io.writer import append_record_jsonl, write_dataset_jsonl
 from .judge.scorer import judge_tool_calls
 from .prompts import (
     create_caller_system_prompt,
@@ -46,6 +46,7 @@ def _generate_sample(
     record_id: str,
     tools: List[ToolSpec],
     model_config: ModelConfig,
+    language: str = "english",
 ) -> Optional[Record]:
     """Generate a complete sample (request + tool calls + record).
 
@@ -54,12 +55,13 @@ def _generate_sample(
         record_id: Unique identifier for the record.
         tools: Available tools for this sample.
         model_config: Model configuration.
+        language: Language name for user requests.
 
     Returns:
         Record object or None if generation fails.
     """
     # 1. Generate user request
-    prompt = create_problem_generation_prompt(tools)
+    prompt = create_problem_generation_prompt(tools, language)
     response = client.create(
         messages=[
             {"role": "system", "content": prompt},
@@ -120,9 +122,10 @@ def _generate_sample(
         pass  # Continue without judge data
 
     # 5. Create record
+    language_code = language[:2].lower() if len(language) >= 2 else "en"
     return Record(
         id=record_id,
-        language="en",
+        language=language_code,
         tools=tools,
         messages=[Message(role="user", content=user_request)],
         assistant_calls=tool_calls,
@@ -177,6 +180,11 @@ def generate_dataset(
 
     # Generate records
     output_dir.mkdir(parents=True, exist_ok=True)
+    jsonl_path = output_dir / "train.jsonl"
+
+    # Clear existing file
+    if jsonl_path.exists():
+        jsonl_path.unlink()
 
     all_records: List[Record] = []
     failed = 0
@@ -184,10 +192,13 @@ def generate_dataset(
     for i, tools_subset in enumerate(tqdm(tool_subsets, desc="Generating samples")):
         try:
             record_id = f"record_{i:06d}"
-            record = _generate_sample(client, record_id, tools_subset, model_config)
+            record = _generate_sample(
+                client, record_id, tools_subset, model_config, gen_config.language
+            )
 
             if record:
                 all_records.append(record)
+                append_record_jsonl(record, jsonl_path)
             else:
                 failed += 1
         except Exception:
@@ -204,14 +215,14 @@ def generate_dataset(
         split_idx = int(len(shuffled) * gen_config.train_split)
         splits["train"] = shuffled[:split_idx]
         splits["val"] = shuffled[split_idx:]
+
+        # Rewrite files with split data
+        for split_name, records in splits.items():
+            if records:
+                split_path = output_dir / f"{split_name}.jsonl"
+                write_dataset_jsonl(records, split_path, split=split_name)
     else:
         splits["train"] = all_records
-
-    # Write JSONL files for each split
-    for split_name, records in splits.items():
-        if records:
-            jsonl_path = output_dir / f"{split_name}.jsonl"
-            write_dataset_jsonl(records, jsonl_path, split=split_name)
 
     # Create manifest
     manifest = {

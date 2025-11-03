@@ -13,12 +13,14 @@ class GenerationConfig:
         strategy: Sampling strategy name ("random" or "param_aware").
         seed: Optional random seed for determinism.
         train_split: Fraction of records for training split (0.0-1.0). Default 1.0 (no split).
+        language: Language name for user requests (e.g., "english", "turkish", "spanish"). Default "english".
     """
 
     num_samples: int = 10
     strategy: str = "random"
     seed: Optional[int] = None
     train_split: float = 1.0
+    language: str = "english"
 
 
 @dataclass

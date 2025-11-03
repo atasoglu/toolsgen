@@ -29,3 +29,18 @@ def write_dataset_jsonl(
             record_dict = record.model_dump(exclude_none=True)
             json_line = json.dumps(record_dict, ensure_ascii=False)
             f.write(json_line + "\n")
+
+
+def append_record_jsonl(record: Record, output_path: Path) -> None:
+    """Append a single record to a JSONL file.
+
+    Args:
+        record: Record object to append.
+        output_path: Path to output JSONL file.
+    """
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with output_path.open("a", encoding="utf-8") as f:
+        record_dict = record.model_dump(exclude_none=True)
+        json_line = json.dumps(record_dict, ensure_ascii=False)
+        f.write(json_line + "\n")

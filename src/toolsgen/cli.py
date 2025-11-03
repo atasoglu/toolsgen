@@ -51,6 +51,10 @@ def generate(
     max_tokens: Optional[int] = typer.Option(
         None, min=1, help="Maximum tokens per response"
     ),
+    language: str = typer.Option(
+        "english",
+        help="Language name for user requests (e.g., english, turkish, spanish, french, german)",
+    ),
 ) -> None:
     """Generate a tool-calling dataset from tool specifications.
 
@@ -80,6 +84,7 @@ def generate(
         strategy=strategy,
         seed=seed,
         train_split=1.0,  # Default: no split, can be added as CLI option later
+        language=language,
     )
 
     model_config = ModelConfig(
