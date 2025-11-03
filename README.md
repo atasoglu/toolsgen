@@ -1,4 +1,4 @@
-# ToolsGen
+# 🛠️ ToolsGen
 
 A modular Python library for synthesizing tool-calling datasets from JSON tool definitions using an LLM-as-a-judge pipeline. Designed for OpenAI-compatible APIs.
 
