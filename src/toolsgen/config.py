@@ -14,6 +14,7 @@ class GenerationConfig:
         seed: Optional random seed for determinism.
         train_split: Fraction of records for training split (0.0-1.0). Default 1.0 (no split).
         language: Language name for user requests (e.g., "english", "turkish", "spanish"). Default "english".
+        max_attempts: Maximum retry attempts per sample. Default 3.
     """
 
     num_samples: int = 10
@@ -21,6 +22,7 @@ class GenerationConfig:
     seed: Optional[int] = None
     train_split: float = 1.0
     language: str = "english"
+    max_attempts: int = 3
 
 
 @dataclass

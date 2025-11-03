@@ -82,6 +82,9 @@ def generate(
         max=2.0,
         help="Temperature for judging (defaults to --temperature)",
     ),
+    max_attempts: int = typer.Option(
+        3, min=1, help="Maximum retry attempts per sample"
+    ),
 ) -> None:
     """Generate a tool-calling dataset from tool specifications.
 
@@ -112,6 +115,7 @@ def generate(
         seed=seed,
         train_split=1.0,  # Default: no split, can be added as CLI option later
         language=language,
+        max_attempts=max_attempts,
     )
 
     # Create role-based config if any role-specific options are provided

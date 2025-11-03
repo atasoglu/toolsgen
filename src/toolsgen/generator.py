@@ -206,26 +206,36 @@ def generate_dataset(
     all_records: List[Record] = []
     failed = 0
 
-    for i, tools_subset in enumerate(tqdm(tool_subsets, desc="Generating samples")):
-        try:
-            record_id = f"record_{i:06d}"
-            record = _generate_sample(
-                problem_client,
-                caller_client,
-                judge_client,
-                record_id,
-                tools_subset,
-                role_config,
-                gen_config.language,
-            )
+    pbar = tqdm(total=gen_config.num_samples, desc="Generating samples")
+    for i in range(gen_config.num_samples):
+        tools_subset = tool_subsets[i % len(tool_subsets)]
+        for attempt in range(gen_config.max_attempts):
+            try:
+                record_id = f"record_{len(all_records):06d}"
+                record = _generate_sample(
+                    problem_client,
+                    caller_client,
+                    judge_client,
+                    record_id,
+                    tools_subset,
+                    role_config,
+                    gen_config.language,
+                )
 
-            if record:
-                all_records.append(record)
-                append_record_jsonl(record, jsonl_path)
-            else:
+                if record:
+                    all_records.append(record)
+                    append_record_jsonl(record, jsonl_path)
+                    pbar.update(1)
+                    break
+                else:
+                    failed += 1
+            except Exception:
                 failed += 1
-        except Exception:
-            failed += 1
+        else:
+            print(
+                f"\nWarning: Failed to generate sample {i} after {gen_config.max_attempts} attempts"
+            )
+    pbar.close()
 
     # Split records into train/val if configured
     splits: Dict[str, List[Record]] = {}
