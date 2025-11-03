@@ -60,68 +60,11 @@ class JudgeResponse(BaseModel):
         description="Brief explanation of the judgment",
     )
 
-
-class JudgeResult:
-    """Result from LLM-as-a-judge scoring.
-
-    Attributes:
-        score: Overall score (0.0-1.0)
-        verdict: "accept" or "reject"
-        rationale: Brief explanation of the judgment
-        rubric_version: Version of the rubric used
-        tool_relevance: Score for tool relevance (0-0.4)
-        argument_quality: Score for argument plausibility (0-0.4)
-        clarity: Score for clarity and completeness (0-0.2)
-    """
-
-    def __init__(
-        self,
-        score: float,
-        verdict: str,
-        rationale: str,
-        tool_relevance: float = 0.0,
-        argument_quality: float = 0.0,
-        clarity: float = 0.0,
-        rubric_version: str = "0.1.0",
-    ) -> None:
-        self.score = score
-        self.verdict = verdict
-        self.rationale = rationale
-        self.tool_relevance = tool_relevance
-        self.argument_quality = argument_quality
-        self.clarity = clarity
-        self.rubric_version = rubric_version
-
-    @classmethod
-    def from_response(cls, response: JudgeResponse) -> "JudgeResult":
-        """Create JudgeResult from structured JudgeResponse.
-
-        Args:
-            response: Structured response from judge LLM.
-
-        Returns:
-            JudgeResult instance.
-        """
-        return cls(
-            score=response.score,
-            verdict=response.verdict,
-            rationale=response.rationale,
-            tool_relevance=response.tool_relevance,
-            argument_quality=response.argument_quality,
-            clarity=response.clarity,
-            rubric_version="0.1.0",
-        )
-
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for Record.judge field."""
         return {
-            "score": self.score,
-            "verdict": self.verdict,
-            "rationale": self.rationale,
-            "rubric_version": self.rubric_version,
-            "tool_relevance": self.tool_relevance,
-            "argument_quality": self.argument_quality,
-            "clarity": self.clarity,
+            **self.model_dump(),
+            "rubric_version": "0.1.0",
         }
 
 
@@ -131,7 +74,7 @@ def judge_tool_calls(
     tools: List[ToolSpec],
     tool_calls: List[AssistantToolCall],
     temperature: float = 0.3,
-) -> JudgeResult:
+) -> JudgeResponse:
     """Evaluate tool calls using LLM-as-a-judge.
 
     Args:
@@ -142,17 +85,16 @@ def judge_tool_calls(
         temperature: Sampling temperature (lower for more deterministic).
 
     Returns:
-        JudgeResult with scores and verdict.
-
-    Raises:
-        ValueError: If judge response cannot be parsed or is invalid.
+        JudgeResponse with scores and verdict.
     """
     if not tool_calls:
-        return JudgeResult(
+        return JudgeResponse(
+            tool_relevance=0.0,
+            argument_quality=0.0,
+            clarity=0.0,
             score=0.0,
             verdict="reject",
             rationale="No tool calls provided",
-            rubric_version="0.1.0",
         )
 
     prompt = create_judge_prompt(user_request, tools, tool_calls)
@@ -162,13 +104,9 @@ def judge_tool_calls(
         {"role": "user", "content": create_judge_user_message()},
     ]
 
-    # Use structured outputs with pydantic model
-    response = client.create_structured(
+    return client.create_structured(
         messages=messages,
         response_model=JudgeResponse,
         temperature=temperature,
         max_tokens=500,
     )
-
-    # response is already a JudgeResponse pydantic model
-    return JudgeResult.from_response(response)

@@ -41,144 +41,92 @@ def load_tool_specs(tools_path: Path) -> List[ToolSpec]:
     return [ToolSpec.model_validate(tool) for tool in data]
 
 
-def _generate_user_request(
-    client: ChatModelClient, tools: List[ToolSpec], temperature: float = 0.8
-) -> str:
-    """Generate a natural language user request using the LLM.
+def _generate_sample(
+    client: ChatModelClient,
+    record_id: str,
+    tools: List[ToolSpec],
+    model_config: ModelConfig,
+) -> Optional[Record]:
+    """Generate a complete sample (request + tool calls + record).
 
     Args:
         client: LLM client for generation.
-        tools: Available tools for the request.
-        temperature: Sampling temperature.
+        record_id: Unique identifier for the record.
+        tools: Available tools for this sample.
+        model_config: Model configuration.
 
     Returns:
-        Generated user request text.
+        Record object or None if generation fails.
     """
+    # 1. Generate user request
     prompt = create_problem_generation_prompt(tools)
-    messages = [
-        {"role": "system", "content": prompt},
-        {"role": "user", "content": create_problem_generation_user_message()},
-    ]
-
     response = client.create(
-        messages=messages,
-        temperature=temperature,
+        messages=[
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": create_problem_generation_user_message()},
+        ],
+        temperature=model_config.temperature,
         max_tokens=200,
     )
 
     choices = response.get("choices", [])
     if not choices:
-        raise ValueError("LLM returned no choices")
-    content = choices[0].get("message", {}).get("content", "")
-    if not content:
-        raise ValueError("LLM returned empty content")
-    return content.strip()
+        return None
+    user_request = choices[0].get("message", {}).get("content", "").strip()
+    if not user_request:
+        return None
 
-
-def _generate_tool_calls(
-    client: ChatModelClient,
-    user_request: str,
-    tools: List[ToolSpec],
-    temperature: float = 0.3,
-) -> Dict[str, Any]:
-    """Generate tool calls for a user request using the LLM.
-
-    Args:
-        client: LLM client for generation.
-        user_request: The user's natural language request.
-        tools: Available tools that can be called.
-        temperature: Sampling temperature (lower for more deterministic).
-
-    Returns:
-        API response containing tool calls.
-    """
+    # 2. Generate tool calls
     tools_dict = [tool.model_dump() for tool in tools]
-    messages = [
-        {"role": "system", "content": create_caller_system_prompt()},
-        {"role": "user", "content": user_request},
-    ]
-
     response = client.create(
-        messages=messages,
+        messages=[
+            {"role": "system", "content": create_caller_system_prompt()},
+            {"role": "user", "content": user_request},
+        ],
         tools=tools_dict,
         tool_choice="auto",
-        temperature=temperature,
+        temperature=model_config.temperature,
         max_tokens=500,
     )
 
-    return response
-
-
-def _extract_tool_calls(response: Dict[str, Any]) -> List[AssistantToolCall]:
-    """Extract tool calls from LLM response.
-
-    Args:
-        response: API response dictionary.
-
-    Returns:
-        List of AssistantToolCall objects.
-    """
-    choices = response.get("choices", [])
-    if not choices:
-        return []
-
-    message = choices[0].get("message", {})
+    # 3. Extract tool calls
+    message = response.get("choices", [{}])[0].get("message", {})
     tool_calls_data = message.get("tool_calls", [])
-
     tool_calls = []
     for tc_data in tool_calls_data:
         try:
-            tool_call = AssistantToolCall.model_validate(tc_data)
-            tool_calls.append(tool_call)
+            tool_calls.append(AssistantToolCall.model_validate(tc_data))
         except Exception:
             continue
 
-    return tool_calls
+    if not tool_calls:
+        return None
 
-
-def _create_record(
-    record_id: str,
-    tools: List[ToolSpec],
-    user_request: str,
-    tool_calls: List[AssistantToolCall],
-    model_info: Dict[str, Any],
-    judge_result: Optional[Dict[str, Any]] = None,
-) -> Record:
-    """Create a Record object from generated data.
-
-    Args:
-        record_id: Unique identifier for the record.
-        tools: Tools available in this record.
-        user_request: Generated user request.
-        tool_calls: Generated tool calls.
-        model_info: Information about the model used.
-        judge_result: Optional judge scoring result.
-
-    Returns:
-        Record object.
-    """
-    messages = [
-        Message(role="user", content=user_request),
-    ]
-
+    # 4. Judge the tool calls
     judge_dict: Dict[str, Any] = {
-        "model": model_info.get("model", "unknown"),
-        "temperature": model_info.get("temperature", 0.7),
+        "model": model_config.model,
+        "temperature": model_config.temperature,
     }
+    try:
+        judge_result = judge_tool_calls(
+            client=client,
+            user_request=user_request,
+            tools=tools,
+            tool_calls=tool_calls,
+            temperature=model_config.temperature,
+        )
+        judge_dict.update(judge_result.to_dict())
+    except Exception:
+        pass  # Continue without judge data
 
-    if judge_result:
-        judge_dict.update(judge_result)
-
+    # 5. Create record
     return Record(
         id=record_id,
         language="en",
         tools=tools,
-        messages=messages,
+        messages=[Message(role="user", content=user_request)],
         assistant_calls=tool_calls,
-        problem_metadata={
-            "generated": True,
-            "user_request": user_request,
-        },
+        problem_metadata={"generated": True, "user_request": user_request},
         judge=judge_dict,
     )
 
@@ -235,70 +183,15 @@ def generate_dataset(
 
     for i, tools_subset in enumerate(tqdm(tool_subsets, desc="Generating samples")):
         try:
-            # Generate user request
-            user_request = _generate_user_request(
-                client, tools_subset, temperature=model_config.temperature
-            )
-
-            # Generate tool calls
-            response = _generate_tool_calls(
-                client, user_request, tools_subset, temperature=model_config.temperature
-            )
-
-            # Extract tool calls
-            tool_calls = _extract_tool_calls(response)
-
-            # Only keep records with at least one tool call
-            if not tool_calls:
-                failed += 1
-                continue
-
-            # Judge the tool calls
-            try:
-                judge_result = judge_tool_calls(
-                    client=client,
-                    user_request=user_request,
-                    tools=tools_subset,
-                    tool_calls=tool_calls,
-                    temperature=model_config.temperature,
-                )
-                judge_dict = judge_result.to_dict()
-            except Exception as e:
-                # If judging fails, continue without judge data
-                import sys
-
-                print(
-                    f"Warning: Judge failed for record {i}: {type(e).__name__}: {e}",
-                    file=sys.stderr,
-                )
-                judge_dict = None
-
-            # Create record
             record_id = f"record_{i:06d}"
-            record = _create_record(
-                record_id=record_id,
-                tools=tools_subset,
-                user_request=user_request,
-                tool_calls=tool_calls,
-                model_info={
-                    "model": model_config.model,
-                    "temperature": model_config.temperature,
-                },
-                judge_result=judge_dict,
-            )
+            record = _generate_sample(client, record_id, tools_subset, model_config)
 
-            all_records.append(record)
-
-        except Exception as e:
+            if record:
+                all_records.append(record)
+            else:
+                failed += 1
+        except Exception:
             failed += 1
-            # Log the error for debugging
-            import sys
-
-            print(
-                f"Warning: Failed to generate record {i}: {type(e).__name__}: {e}",
-                file=sys.stderr,
-            )
-            continue
 
     # Split records into train/val if configured
     splits: Dict[str, List[Record]] = {}

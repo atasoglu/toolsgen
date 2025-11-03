@@ -7,7 +7,7 @@ datasets from JSON tool definitions using an LLM-as-a-judge approach.
 from .config import GenerationConfig, ModelConfig
 from .generator import generate_dataset, load_tool_specs
 from .io.writer import write_dataset_jsonl
-from .judge.scorer import JudgeResult, judge_tool_calls
+from .judge.scorer import JudgeResponse, judge_tool_calls
 from .prompts import (
     create_caller_system_prompt,
     create_judge_prompt,
@@ -36,7 +36,7 @@ __all__ = [
     "generate_dataset",
     "load_tool_specs",
     "write_dataset_jsonl",
-    "JudgeResult",
+    "JudgeResponse",
     "judge_tool_calls",
     "create_caller_system_prompt",
     "create_judge_prompt",
