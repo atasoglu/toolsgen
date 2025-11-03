@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 import typer
 
 from . import __version__
-from .config import GenerationConfig, ModelConfig
+from .config import GenerationConfig, ModelConfig, RoleBasedModelConfig
 from .generator import generate_dataset
 
 
@@ -55,6 +55,33 @@ def generate(
         "english",
         help="Language name for user requests (e.g., english, turkish, spanish, french, german)",
     ),
+    problem_model: Optional[str] = typer.Option(
+        None, help="Model for problem generation (defaults to --model)"
+    ),
+    caller_model: Optional[str] = typer.Option(
+        None, help="Model for tool calling (defaults to --model)"
+    ),
+    judge_model: Optional[str] = typer.Option(
+        None, help="Model for judging (defaults to --model)"
+    ),
+    problem_temp: Optional[float] = typer.Option(
+        None,
+        min=0.0,
+        max=2.0,
+        help="Temperature for problem generation (defaults to --temperature)",
+    ),
+    caller_temp: Optional[float] = typer.Option(
+        None,
+        min=0.0,
+        max=2.0,
+        help="Temperature for tool calling (defaults to --temperature)",
+    ),
+    judge_temp: Optional[float] = typer.Option(
+        None,
+        min=0.0,
+        max=2.0,
+        help="Temperature for judging (defaults to --temperature)",
+    ),
 ) -> None:
     """Generate a tool-calling dataset from tool specifications.
 
@@ -87,13 +114,47 @@ def generate(
         language=language,
     )
 
-    model_config = ModelConfig(
-        model=model,
-        base_url=base_url or os.environ.get("OPENAI_BASE_URL"),
-        api_key_env="OPENAI_API_KEY",
-        temperature=temperature,
-        max_tokens=max_tokens,
-    )
+    # Create role-based config if any role-specific options are provided
+    model_config: Union[ModelConfig, RoleBasedModelConfig]
+    if (
+        problem_model
+        or caller_model
+        or judge_model
+        or problem_temp is not None
+        or caller_temp is not None
+        or judge_temp is not None
+    ):
+        model_config = RoleBasedModelConfig(
+            problem_generator=ModelConfig(
+                model=problem_model or model,
+                base_url=base_url or os.environ.get("OPENAI_BASE_URL"),
+                api_key_env="OPENAI_API_KEY",
+                temperature=problem_temp if problem_temp is not None else temperature,
+                max_tokens=max_tokens,
+            ),
+            tool_caller=ModelConfig(
+                model=caller_model or model,
+                base_url=base_url or os.environ.get("OPENAI_BASE_URL"),
+                api_key_env="OPENAI_API_KEY",
+                temperature=caller_temp if caller_temp is not None else temperature,
+                max_tokens=max_tokens,
+            ),
+            judge=ModelConfig(
+                model=judge_model or model,
+                base_url=base_url or os.environ.get("OPENAI_BASE_URL"),
+                api_key_env="OPENAI_API_KEY",
+                temperature=judge_temp if judge_temp is not None else temperature,
+                max_tokens=max_tokens,
+            ),
+        )
+    else:
+        model_config = ModelConfig(
+            model=model,
+            base_url=base_url or os.environ.get("OPENAI_BASE_URL"),
+            api_key_env="OPENAI_API_KEY",
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
 
     try:
         typer.echo(f"Generating {n} samples using {model}...")

@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 
 from tqdm import tqdm
 
-from .config import GenerationConfig, ModelConfig
+from .config import GenerationConfig, ModelConfig, RoleBasedModelConfig
 from .io.writer import append_record_jsonl, write_dataset_jsonl
 from .judge.scorer import judge_tool_calls
 from .prompts import (
@@ -42,19 +42,23 @@ def load_tool_specs(tools_path: Path) -> List[ToolSpec]:
 
 
 def _generate_sample(
-    client: ChatModelClient,
+    problem_client: ChatModelClient,
+    caller_client: ChatModelClient,
+    judge_client: ChatModelClient,
     record_id: str,
     tools: List[ToolSpec],
-    model_config: ModelConfig,
+    role_config: RoleBasedModelConfig,
     language: str = "english",
 ) -> Optional[Record]:
     """Generate a complete sample (request + tool calls + record).
 
     Args:
-        client: LLM client for generation.
+        problem_client: LLM client for problem generation.
+        caller_client: LLM client for tool calling.
+        judge_client: LLM client for judging.
         record_id: Unique identifier for the record.
         tools: Available tools for this sample.
-        model_config: Model configuration.
+        role_config: Role-based model configuration.
         language: Language name for user requests.
 
     Returns:
@@ -62,12 +66,12 @@ def _generate_sample(
     """
     # 1. Generate user request
     prompt = create_problem_generation_prompt(tools, language)
-    response = client.create(
+    response = problem_client.create(
         messages=[
             {"role": "system", "content": prompt},
             {"role": "user", "content": create_problem_generation_user_message()},
         ],
-        temperature=model_config.temperature,
+        temperature=role_config.problem_generator.temperature,
         max_tokens=200,
     )
 
@@ -80,14 +84,14 @@ def _generate_sample(
 
     # 2. Generate tool calls
     tools_dict = [tool.model_dump() for tool in tools]
-    response = client.create(
+    response = caller_client.create(
         messages=[
             {"role": "system", "content": create_caller_system_prompt()},
             {"role": "user", "content": user_request},
         ],
         tools=tools_dict,
         tool_choice="auto",
-        temperature=model_config.temperature,
+        temperature=role_config.tool_caller.temperature,
         max_tokens=500,
     )
 
@@ -106,16 +110,16 @@ def _generate_sample(
 
     # 4. Judge the tool calls
     judge_dict: Dict[str, Any] = {
-        "model": model_config.model,
-        "temperature": model_config.temperature,
+        "model": role_config.judge.model,
+        "temperature": role_config.judge.temperature,
     }
     try:
         judge_result = judge_tool_calls(
-            client=client,
+            client=judge_client,
             user_request=user_request,
             tools=tools,
             tool_calls=tool_calls,
-            temperature=model_config.temperature,
+            temperature=role_config.judge.temperature,
         )
         judge_dict.update(judge_result.to_dict())
     except Exception:
@@ -137,7 +141,7 @@ def generate_dataset(
     tools_path: Path,
     output_dir: Path,
     gen_config: GenerationConfig,
-    model_config: ModelConfig,
+    model_config: ModelConfig | RoleBasedModelConfig,
 ) -> Dict[str, Any]:
     """Generate a tool-calling dataset from tool specifications.
 
@@ -145,7 +149,7 @@ def generate_dataset(
         tools_path: Path to tools.json file.
         output_dir: Directory to write dataset files.
         gen_config: Generation configuration.
-        model_config: Model configuration.
+        model_config: Model configuration (single or role-based).
 
     Returns:
         Dictionary containing generation statistics.
@@ -153,10 +157,24 @@ def generate_dataset(
     # Load tool specs
     all_tools = load_tool_specs(tools_path)
 
-    # Create client
-    client = ChatModelClient(
-        model=model_config.model,
-        base_url=model_config.base_url,
+    # Convert to role-based config if needed
+    if isinstance(model_config, ModelConfig):
+        role_config = RoleBasedModelConfig.from_single_config(model_config)
+    else:
+        role_config = model_config
+
+    # Create clients for each role
+    problem_client = ChatModelClient(
+        model=role_config.problem_generator.model,
+        base_url=role_config.problem_generator.base_url,
+    )
+    caller_client = ChatModelClient(
+        model=role_config.tool_caller.model,
+        base_url=role_config.tool_caller.base_url,
+    )
+    judge_client = ChatModelClient(
+        model=role_config.judge.model,
+        base_url=role_config.judge.base_url,
     )
 
     # Sample tool subsets
@@ -192,7 +210,13 @@ def generate_dataset(
         try:
             record_id = f"record_{i:06d}"
             record = _generate_sample(
-                client, record_id, tools_subset, model_config, gen_config.language
+                problem_client,
+                caller_client,
+                judge_client,
+                record_id,
+                tools_subset,
+                role_config,
+                gen_config.language,
             )
 
             if record:
@@ -233,8 +257,11 @@ def generate_dataset(
         "seed": gen_config.seed,
         "train_split": gen_config.train_split,
         "tools_count": len(all_tools),
-        "model": model_config.model,
-        "temperature": model_config.temperature,
+        "models": {
+            "problem_generator": role_config.problem_generator.model,
+            "tool_caller": role_config.tool_caller.model,
+            "judge": role_config.judge.model,
+        },
         "splits": {name: len(records) for name, records in splits.items()},
     }
 

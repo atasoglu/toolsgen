@@ -32,3 +32,27 @@ class ModelConfig:
     api_key_env: str = "OPENAI_API_KEY"
     temperature: float = 0.7
     max_tokens: Optional[int] = None
+
+
+@dataclass
+class RoleBasedModelConfig:
+    """Configuration for different LLM roles in dataset generation.
+
+    Attributes:
+        problem_generator: Config for generating user requests.
+        tool_caller: Config for generating tool calls.
+        judge: Config for evaluating tool calls.
+    """
+
+    problem_generator: ModelConfig
+    tool_caller: ModelConfig
+    judge: ModelConfig
+
+    @classmethod
+    def from_single_config(cls, config: ModelConfig) -> "RoleBasedModelConfig":
+        """Create role-based config from a single ModelConfig."""
+        return cls(
+            problem_generator=config,
+            tool_caller=config,
+            judge=config,
+        )

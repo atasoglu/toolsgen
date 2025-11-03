@@ -4,7 +4,7 @@ This package provides a modular pipeline to synthesize English tool-calling
 datasets from JSON tool definitions using an LLM-as-a-judge approach.
 """
 
-from .config import GenerationConfig, ModelConfig
+from .config import GenerationConfig, ModelConfig, RoleBasedModelConfig
 from .generator import generate_dataset, load_tool_specs
 from .io.writer import write_dataset_jsonl
 from .judge.scorer import JudgeResponse, judge_tool_calls
@@ -33,6 +33,7 @@ __all__ = [
     "__version__",
     "GenerationConfig",
     "ModelConfig",
+    "RoleBasedModelConfig",
     "generate_dataset",
     "load_tool_specs",
     "write_dataset_jsonl",
