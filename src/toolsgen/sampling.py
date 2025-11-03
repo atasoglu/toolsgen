@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+import re
 from typing import List, Sequence
 
 from .schema import ToolSpec
@@ -53,6 +54,123 @@ def sample_param_aware_subset(
     return [t for t, _ in scored[:k]]
 
 
+def _extract_keywords(text: str) -> set[str]:
+    """Extract keywords from text for semantic matching.
+
+    Args:
+        text: Text to extract keywords from.
+
+    Returns:
+        Set of lowercase keywords.
+    """
+    if not text:
+        return set()
+    # Simple keyword extraction: lowercase, split on non-alphanumeric
+    words = re.findall(r"\b\w+\b", text.lower())
+    # Filter out very common words and short words
+    stop_words = {"the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for"}
+    return {w for w in words if len(w) > 2 and w not in stop_words}
+
+
+def _tool_semantic_similarity(tool1: ToolSpec, tool2: ToolSpec) -> float:
+    """Calculate semantic similarity between two tools based on keywords.
+
+    Args:
+        tool1: First tool specification.
+        tool2: Second tool specification.
+
+    Returns:
+        Similarity score between 0.0 and 1.0.
+    """
+    # Extract keywords from name and description
+    name1 = tool1.function.name
+    desc1 = tool1.function.description or ""
+    name2 = tool2.function.name
+    desc2 = tool2.function.description or ""
+
+    keywords1 = _extract_keywords(name1) | _extract_keywords(desc1)
+    keywords2 = _extract_keywords(name2) | _extract_keywords(desc2)
+
+    if not keywords1 or not keywords2:
+        return 0.0
+
+    # Jaccard similarity
+    intersection = len(keywords1 & keywords2)
+    union = len(keywords1 | keywords2)
+    return intersection / union if union > 0 else 0.0
+
+
+def sample_semantic_subset(
+    tools: Sequence[ToolSpec], *, k: int, seed: int | None = None
+) -> List[ToolSpec]:
+    """Sample tools with semantic clustering preference.
+
+    Strategy: Group tools by semantic similarity, then sample from diverse
+    clusters to encourage semantically related tools to appear together.
+
+    Args:
+        tools: Sequence of tools to sample from.
+        k: Number of tools to sample.
+        seed: Optional random seed for determinism.
+
+    Returns:
+        List of sampled tools.
+    """
+    if not tools:
+        return []
+    k = max(1, min(k, len(tools)))
+    rng = random.Random(seed)
+
+    # Build similarity matrix (simplified: only compute when needed)
+    # For efficiency, use a greedy clustering approach
+    if len(tools) <= k:
+        return list(tools)
+
+    # Start with a random tool
+    selected: List[ToolSpec] = []
+    remaining = list(tools)
+    rng.shuffle(remaining)
+
+    # Greedy selection: pick tools that are semantically similar to already selected
+    # or diverse if we want coverage
+    selected.append(remaining.pop(0))
+
+    while len(selected) < k and remaining:
+        # For each remaining tool, calculate average similarity to selected tools
+        best_tool = None
+        best_score = -1.0
+
+        for tool in remaining:
+            # Prefer tools that are somewhat similar (semantic clustering)
+            # but not too similar (avoid redundancy)
+            avg_sim = sum(
+                _tool_semantic_similarity(tool, sel) for sel in selected
+            ) / len(selected)
+
+            # Score: prefer moderate similarity (0.2-0.6 range)
+            if 0.2 <= avg_sim <= 0.6:
+                score = avg_sim
+            elif avg_sim > 0.6:
+                # Too similar, penalize
+                score = avg_sim * 0.5
+            else:
+                # Too different, still consider but with lower weight
+                score = avg_sim * 0.8
+
+            if score > best_score:
+                best_score = score
+                best_tool = tool
+
+        if best_tool:
+            selected.append(best_tool)
+            remaining.remove(best_tool)
+        else:
+            # Fallback: pick random if no good semantic match
+            selected.append(remaining.pop(0))
+
+    return selected
+
+
 def batched_subsets(
     tools: Sequence[ToolSpec],
     *,
@@ -68,7 +186,7 @@ def batched_subsets(
     Notes:
     - `batch_size` determines the size (k) of each sampled subset.
     - `total` determines how many subsets to produce.
-    - `strategy`: "random" or "param_aware".
+    - `strategy`: "random", "param_aware", or "semantic".
     - If you want variable subset sizes, adjust `k_min`/`k_max` and set
       `batch_size` to a value outside [1, len(tools)] to fallback to range.
     """
@@ -87,9 +205,14 @@ def batched_subsets(
     k_min = max(1, min(k_min, k_max))
 
     rng = random.Random(seed)
-    chooser = (
-        sample_random_subset if strategy == "random" else sample_param_aware_subset
-    )
+
+    # Choose sampling function based on strategy
+    if strategy == "param_aware":
+        chooser = sample_param_aware_subset
+    elif strategy == "semantic":
+        chooser = sample_semantic_subset
+    else:
+        chooser = sample_random_subset
 
     subsets: List[List[ToolSpec]] = []
     for i in range(total):

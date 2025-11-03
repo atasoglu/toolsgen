@@ -1,20 +1,17 @@
 from __future__ import annotations
 
-import json
+import os
 from pathlib import Path
 from typing import Optional
 
 import typer
 
 from . import __version__
+from .config import GenerationConfig, ModelConfig
+from .generator import generate_dataset
 
 
 app = typer.Typer(help="ToolsGen CLI - generate tool-calling datasets from tool specs")
-
-
-def _read_json_file(path: Path) -> dict:
-    with path.open("r", encoding="utf-8") as f:
-        return json.load(f)
 
 
 @app.command()
@@ -37,31 +34,86 @@ def generate(
     out: Path = typer.Option(..., help="Output directory for dataset files"),
     n: int = typer.Option(10, min=1, help="Number of samples to generate"),
     strategy: str = typer.Option(
-        "random", help="Sampling strategy: random or semantic"
+        "random", help="Sampling strategy: random, param_aware, or semantic"
     ),
     seed: Optional[int] = typer.Option(None, help="Random seed for deterministic runs"),
+    model: str = typer.Option(
+        "gpt-4o-mini",
+        help="Model name (e.g., gpt-4o-mini, gpt-4, claude-3-sonnet)",
+    ),
+    base_url: Optional[str] = typer.Option(
+        None,
+        help="Custom base URL for OpenAI-compatible API (overrides OPENAI_BASE_URL)",
+    ),
+    temperature: float = typer.Option(
+        0.7, min=0.0, max=2.0, help="Sampling temperature"
+    ),
+    max_tokens: Optional[int] = typer.Option(
+        None, min=1, help="Maximum tokens per response"
+    ),
 ) -> None:
-    """Generate a dataset (stub implementation).
+    """Generate a tool-calling dataset from tool specifications.
 
-    This skeleton command validates inputs and prepares the output directory.
-    Further functionality will be implemented in subsequent steps.
+    This command uses an LLM to generate natural language user requests and
+    corresponding tool calls, creating a dataset suitable for training or
+    evaluating tool-calling models.
     """
+    if strategy not in ("random", "param_aware", "semantic"):
+        typer.echo(
+            f"Error: strategy must be 'random', 'param_aware', or 'semantic', got '{strategy}'",
+            err=True,
+        )
+        raise typer.Exit(1)
 
-    tools_data = _read_json_file(tools)
-    out.mkdir(parents=True, exist_ok=True)
+    # Load environment variables
+    dotenv_path = Path(".env")
+    if dotenv_path.exists():
+        try:
+            from dotenv import load_dotenv
 
-    # Placeholder behavior for skeleton: write a minimal manifest
-    manifest = {
-        "version": __version__,
-        "num_requested": n,
-        "strategy": strategy,
-        "seed": seed,
-        "tools_count": len(tools_data) if isinstance(tools_data, list) else 1,
-    }
-    (out / "manifest.json").write_text(
-        json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
+            load_dotenv(dotenv_path)
+        except ImportError:
+            pass  # python-dotenv not installed, skip
+
+    gen_config = GenerationConfig(
+        num_samples=n,
+        strategy=strategy,
+        seed=seed,
+        train_split=1.0,  # Default: no split, can be added as CLI option later
     )
-    typer.echo(f"Initialized generation stub. Wrote: {out / 'manifest.json'}")
+
+    model_config = ModelConfig(
+        model=model,
+        base_url=base_url or os.environ.get("OPENAI_BASE_URL"),
+        api_key_env="OPENAI_API_KEY",
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )
+
+    try:
+        typer.echo(f"Generating {n} samples using {model}...")
+        manifest = generate_dataset(tools, out, gen_config, model_config)
+
+        typer.echo(f"\nGenerated {manifest['num_generated']} records")
+        typer.echo(f"  - Requested: {manifest['num_requested']}")
+        typer.echo(f"  - Failed: {manifest['num_failed']}")
+        typer.echo(f"  - Output directory: {out}")
+
+        splits = manifest.get("splits", {})
+        if splits:
+            typer.echo("  - Splits:")
+            for split_name, count in splits.items():
+                typer.echo(f"    * {split_name}.jsonl: {count} records")
+        else:
+            typer.echo(f"  - train.jsonl: {manifest['num_generated']} records")
+
+        typer.echo(f"  - Manifest: {out / 'manifest.json'}")
+    except ValueError as e:
+        typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+    except Exception as e:
+        typer.echo(f"Unexpected error: {e}", err=True)
+        raise typer.Exit(1)
 
 
 def main() -> None:

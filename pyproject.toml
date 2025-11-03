@@ -1,5 +1,90 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project]
+name = "toolsgen"
+version = "0.1.0"
+description = "Generate tool-calling datasets from OpenAI-compatible tool specs"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [
+  { name = "Ahmet Ataşoğlu" }
+]
+keywords = ["tools", "dataset", "llm", "openai", "tool-calling"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+]
+dependencies = [
+  "typer>=0.12.0",
+  "pydantic>=2.7.0",
+  "openai>=1.50.0",
+  "tqdm>=4.66.0",
+  "python-dotenv>=1.0.1",
+]
+
+[project.urls]
+Homepage = "https://github.com/atasoglu/toolsgen"
+Repository = "https://github.com/atasoglu/toolsgen"
+
+[project.scripts]
+toolsgen = "toolsgen.cli:main"
+
+[tool.black]
+line-length = 88
+target-version = ["py39"]
+extend-exclude = [
+  "dist",
+  "build",
+]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+
+[tool.coverage.run]
+branch = true
+source = ["src/toolsgen"]
+
+[tool.isort]
+profile = "black"
+py_version = 39
+known_first_party = ["toolsgen"]
+src_paths = ["src", "tests"]
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = [
+  "E203",  # whitespace before ':' (conflicts with black slicing)
+]
+exclude = [
+  ".git",
+  "__pycache__",
+  "build",
+  "dist",
+]
+
+[tool.pytest.ini_options]
+addopts = "-q --cov=src --cov-report=term-missing"
+testpaths = [
+  "tests",
+]
+
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.9"
 mypy_path = ["src"]
 explicit_package_bases = true
 namespace_packages = true
