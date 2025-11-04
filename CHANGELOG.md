@@ -23,6 +23,11 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 - Semantic sampling strategy based on keyword similarity
 
 ### Changed
+- **[BREAKING]** `generate_dataset()` function signature updated:
+  - New signature: `generate_dataset(output_dir, gen_config, model_config, tools_path=None, tools=None)`
+  - Old signature: `generate_dataset(tools_path, output_dir, gen_config, model_config)`
+  - Now supports passing tools list directly via `tools` parameter as alternative to `tools_path`
+  - Exactly one of `tools_path` or `tools` must be provided
 - **[BREAKING]** Reduced dependencies (removed typer, python-dotenv from core dependencies)
 - **[BREAKING]** Flattened module structure - removed nested folders (io/, judge/, providers/)
 - **[BREAKING]** CLI rewritten using `argparse` instead of `typer` (stdlib only)

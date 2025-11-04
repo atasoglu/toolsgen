@@ -31,7 +31,7 @@ model_config = ModelConfig(
 )
 
 # Generate dataset
-manifest = generate_dataset(tools_path, output_dir, gen_config, model_config)
+manifest = generate_dataset(output_dir, gen_config, model_config, tools_path=tools_path)
 
 print(f"✓ Generated {manifest['num_generated']} records")
 print(f"  Output: {output_dir}")

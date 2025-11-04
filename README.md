@@ -86,8 +86,13 @@ model_config = ModelConfig(
     temperature=0.7,
 )
 
-# Generate dataset
-manifest = generate_dataset(tools_path, output_dir, gen_config, model_config)
+# Generate dataset from file
+manifest = generate_dataset(output_dir, gen_config, model_config, tools_path=tools_path)
+
+# Or use tools list directly (alternative to tools_path)
+# from toolsgen.schema import ToolSpec
+# tools = [ToolSpec(...), ToolSpec(...)]
+# manifest = generate_dataset(output_dir, gen_config, model_config, tools=tools)
 
 print(f"Generated {manifest['num_generated']}/{manifest['num_requested']} records")
 print(f"Failed: {manifest['num_failed']} attempts")

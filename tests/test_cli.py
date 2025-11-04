@@ -202,7 +202,7 @@ def test_cmd_generate_with_role_models(
 
     # Verify the call was made with role-based config
     call_args = mock_generate.call_args
-    model_config = call_args[0][3]  # 4th positional argument
+    model_config = call_args[0][2]  # 3rd positional argument
     assert hasattr(model_config, "problem_generator")
     assert model_config.problem_generator.model == "gpt-4"
     assert model_config.tool_caller.model == "gpt-4o"

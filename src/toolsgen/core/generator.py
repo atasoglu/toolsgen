@@ -99,24 +99,34 @@ def _generate_sample(
 
 
 def generate_dataset(
-    tools_path: Path,
     output_dir: Path,
     gen_config: GenerationConfig,
     model_config: ModelConfig | RoleBasedModelConfig,
+    tools_path: Optional[Path] = None,
+    tools: Optional[List[ToolSpec]] = None,
 ) -> Dict[str, Any]:
     """Generate a tool-calling dataset from tool specifications.
 
     Args:
-        tools_path: Path to tools.json file.
         output_dir: Directory to write dataset files.
         gen_config: Generation configuration.
         model_config: Model configuration (single or role-based).
+        tools_path: Path to tools.json file (optional if tools is provided).
+        tools: List of tool specifications (optional if tools_path is provided).
 
     Returns:
         Dictionary containing generation statistics.
+
+    Raises:
+        ValueError: If neither tools_path nor tools is provided.
     """
-    # Load tool specs
-    all_tools = load_tool_specs(tools_path)
+    # Load or use provided tool specs
+    if tools is not None:
+        all_tools = tools
+    elif tools_path is not None:
+        all_tools = load_tool_specs(tools_path)
+    else:
+        raise ValueError("Either tools_path or tools must be provided")
 
     # Convert to role-based config if needed
     if isinstance(model_config, ModelConfig):

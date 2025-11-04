@@ -45,7 +45,7 @@ role_config = RoleBasedModelConfig(
     ),
 )
 
-manifest = generate_dataset(tools_path, output_dir, gen_config, role_config)
+manifest = generate_dataset(output_dir, gen_config, role_config, tools_path=tools_path)
 
 print(f"\n✓ Generated {manifest['num_generated']}/{manifest['num_requested']} records")
 if manifest["num_failed"] > 0:

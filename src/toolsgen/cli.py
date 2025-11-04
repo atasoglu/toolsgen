@@ -243,7 +243,9 @@ def cmd_generate(args: argparse.Namespace) -> None:
     # Generate dataset
     try:
         print(f"Generating {args.num} samples using {args.model}...")
-        manifest = generate_dataset(args.tools, args.out, gen_config, model_config)
+        manifest = generate_dataset(
+            args.out, gen_config, model_config, tools_path=args.tools
+        )
 
         print(f"\nGenerated {manifest['num_generated']} records")
         print(f"  - Requested: {manifest['num_requested']}")

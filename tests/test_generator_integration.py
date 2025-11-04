@@ -176,7 +176,9 @@ def test_generate_dataset_basic(
     model_config = ModelConfig(model="gpt-4")
     output_dir = tmp_path / "output"
 
-    manifest = generate_dataset(tools_path, output_dir, gen_config, model_config)
+    manifest = generate_dataset(
+        output_dir, gen_config, model_config, tools_path=tools_path
+    )
 
     # Verify manifest
     assert manifest["num_requested"] == 3
@@ -227,7 +229,9 @@ def test_generate_dataset_with_splits(
     model_config = ModelConfig(model="gpt-4")
     output_dir = tmp_path / "output"
 
-    manifest = generate_dataset(tools_path, output_dir, gen_config, model_config)
+    manifest = generate_dataset(
+        output_dir, gen_config, model_config, tools_path=tools_path
+    )
 
     assert manifest["num_generated"] == 10
     assert manifest["train_split"] == 0.8
@@ -278,7 +282,9 @@ def test_generate_dataset_with_failures(
     model_config = ModelConfig(model="gpt-4")
     output_dir = tmp_path / "output"
 
-    manifest = generate_dataset(tools_path, output_dir, gen_config, model_config)
+    manifest = generate_dataset(
+        output_dir, gen_config, model_config, tools_path=tools_path
+    )
 
     assert manifest["num_requested"] == 3
     assert manifest["num_generated"] == 3
@@ -316,7 +322,9 @@ def test_generate_dataset_role_based_config(
         mock_record.model_dump.return_value = {"id": "rec_000000"}
         mock_gen.return_value = mock_record
 
-        manifest = generate_dataset(tools_path, output_dir, gen_config, role_config)
+        manifest = generate_dataset(
+            output_dir, gen_config, role_config, tools_path=tools_path
+        )
 
         # Verify role-based models in manifest
         assert manifest["models"]["problem_generator"] == "gpt-4"
@@ -372,7 +380,65 @@ def test_generate_dataset_param_aware_strategy(
     model_config = ModelConfig(model="gpt-4")
     output_dir = tmp_path / "output"
 
-    manifest = generate_dataset(tools_path, output_dir, gen_config, model_config)
+    manifest = generate_dataset(
+        output_dir, gen_config, model_config, tools_path=tools_path
+    )
 
     assert manifest["strategy"] == "param_aware"
     assert manifest["num_generated"] == 2
+
+
+@patch("toolsgen.core.generator._generate_sample")
+@patch("toolsgen.core.generator.create_openai_client")
+def test_generate_dataset_with_tools_list(
+    mock_create_client: MagicMock,
+    mock_generate_sample: MagicMock,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test dataset generation with direct tools list instead of path."""
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+
+    # Create tools list directly
+    tools = [
+        ToolSpec(
+            function=ToolFunction(
+                name="test_func",
+                description="Test function",
+                parameters={"type": "object", "properties": {}},
+            )
+        )
+    ]
+
+    mock_client = MagicMock()
+    mock_create_client.return_value = mock_client
+
+    mock_record = MagicMock()
+    mock_record.id = "rec_000000"
+    mock_record.model_dump.return_value = {"id": "rec_000000"}
+    mock_generate_sample.return_value = mock_record
+
+    gen_config = GenerationConfig(num_samples=2, strategy="random", seed=42)
+    model_config = ModelConfig(model="gpt-4")
+    output_dir = tmp_path / "output"
+
+    # Call with tools list instead of tools_path
+    manifest = generate_dataset(output_dir, gen_config, model_config, tools=tools)
+
+    assert manifest["num_requested"] == 2
+    assert manifest["num_generated"] == 2
+    assert manifest["tools_count"] == 1
+
+
+def test_generate_dataset_missing_tools_and_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test that dataset generation fails when neither tools_path nor tools is provided."""
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+
+    gen_config = GenerationConfig(num_samples=1)
+    model_config = ModelConfig(model="gpt-4")
+    output_dir = tmp_path / "output"
+
+    with pytest.raises(ValueError, match="Either tools_path or tools must be provided"):
+        generate_dataset(output_dir, gen_config, model_config)
