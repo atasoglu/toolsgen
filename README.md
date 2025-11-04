@@ -18,40 +18,23 @@ ToolsGen automates the creation of tool-calling datasets for training and evalua
 - **Configurable Quality Control**: Adjustable scoring thresholds and retry mechanisms
 - **Train/Val Splitting**: Built-in dataset splitting for model training workflows
 
+## Requirements
+
+- Python 3.9+
+- OpenAI API key (or compatible API endpoint)
+
+### Dependencies
+
+- `pydantic>=2.7.0` - Data validation and settings management
+- `openai>=1.50.0` - OpenAI API client
+- `tqdm>=4.66.0` - Progress bars
+
 ## Installation
 
 ```bash
-# Using pip
-pip install -r requirements.txt
-
-# Or using uv (recommended for faster installation)
-uv venv
-. .venv/Scripts/activate  # Windows PowerShell: .venv\Scripts\Activate.ps1
-uv pip install -r requirements.txt
-
-# For development (includes testing and linting tools)
-pip install -r requirements-dev.txt
-```
-
-**Dependencies:**
-- `pydantic>=2.7.0` - Data validation and structured outputs
-- `openai>=1.50.0` - OpenAI API client
-
-That's it! Only 2 dependencies for the core functionality.
-
-## Configuration
-
-Set your OpenAI API key as an environment variable:
-
-```bash
-# Linux/macOS
-export OPENAI_API_KEY="your-api-key-here"
-
-# Windows PowerShell
-$env:OPENAI_API_KEY="your-api-key-here"
-
-# Windows CMD
-set OPENAI_API_KEY=your-api-key-here
+git clone https://github.com/atasoglu/toolsgen.git
+cd toolsgen
+pip install .
 ```
 
 ## Usage
@@ -60,30 +43,38 @@ set OPENAI_API_KEY=your-api-key-here
 
 ```bash
 # Check version
-python -m toolsgen.cli version
+toolsgen version
+
+# Set your OpenAI API key
+export OPENAI_API_KEY="your-api-key-here"
 
 # Generate dataset with default settings
-python -m toolsgen.cli generate \
+toolsgen generate \
   --tools tools.json \
   --out output_dir \
-  --n 100
+  --num 100
 
-# Advanced: Use different models for different roles
-python -m toolsgen.cli generate \
+# Advanced: Use different models and temperatures for each role
+toolsgen generate \
   --tools tools.json \
   --out output_dir \
-  --n 1000 \
+  --num 1000 \
   --strategy param_aware \
   --seed 42 \
-  --model gpt-4o-mini \
-  --train-split 0.9
+  --train-split 0.9 \
+  --problem-model gpt-4o-mini --problem-temp 0.9 \
+  --caller-model gpt-4o --caller-temp 0.3 \
+  --judge-model gpt-4o --judge-temp 0.0
 ```
 
 ### Python API Usage
 
 ```python
+import os
 from pathlib import Path
 from toolsgen.core import GenerationConfig, ModelConfig, generate_dataset
+
+os.environ["OPENAI_API_KEY"] = "your-api-key-here"
 
 # Configuration
 tools_path = Path("tools.json")
@@ -109,6 +100,8 @@ print(f"Failed: {manifest['num_failed']} attempts")
 ```
 
 See `examples/` directory for complete working examples.
+
+**Note**: The examples in `examples/` use `python-dotenv` for convenience (load API keys from `.env` file). Install it with `pip install python-dotenv` if you want to use this approach.
 
 ## Output Format
 
@@ -191,124 +184,22 @@ pytest -v
 
 ## Development
 
-### Pre-commit Hooks
-
-Install development tools and enable hooks:
-
 ```bash
-uv pip install -r requirements-dev.txt
-pre-commit install
+# Install development dependencies
+pip install -r requirements-dev.txt
+
+# Run tests with coverage
+pytest --cov=src
+
+# Run code quality checks
+ruff check src tests --fix
+ruff format src tests
+mypy src
 ```
-
-Run hooks on all files:
-
-```bash
-pre-commit run --all-files
-```
-
-Hooks included:
-- **Code formatting**: black, pyupgrade
-- **Linting**: flake8, ruff (with auto-fix)
-- **Type checking**: mypy
-- **File hygiene**: trailing whitespace, EOF fixer, YAML/JSON validation
-
 
 ## Architecture
 
-### Pipeline Overview
-
-```mermaid
-graph TB
-    Input["tools.json<br/>(OpenAI-compatible tool definitions)"] --> Sampling["🎲 Tool Sampling<br/>---<br/>• Random<br/>• Param-aware<br/>• Semantic"]
-
-    Sampling --> ProbGen["🤖 Problem Generation<br/>(LLM Role 1)<br/>---<br/>Generate natural language<br/>user requests"]
-
-    ProbGen --> ToolCall["🔧 Tool Call Generation<br/>(LLM Role 2)<br/>---<br/>Generate structured<br/>tool calls with arguments"]
-
-    ToolCall --> Judge["⚖️ Quality Evaluation<br/>(LLM Role 3 - Judge)<br/>---<br/>• Tool Relevance (0-0.4)<br/>• Argument Quality (0-0.4)<br/>• Clarity (0-0.2)<br/>Verdict: accept ≥ 0.7"]
-
-    Judge --> Output["📦 Output Generation<br/>---<br/>• train.jsonl / val.jsonl<br/>• manifest.json"]
-
-    style Input fill:#e1f5ff,stroke:#333,stroke-width:2px,color:#000
-    style Sampling fill:#fff4e1,stroke:#333,stroke-width:2px,color:#000
-    style ProbGen fill:#f0e1ff,stroke:#333,stroke-width:2px,color:#000
-    style ToolCall fill:#e1ffe1,stroke:#333,stroke-width:2px,color:#000
-    style Judge fill:#ffe1e1,stroke:#333,stroke-width:2px,color:#000
-    style Output fill:#f5f5f5,stroke:#333,stroke-width:2px,color:#000
-```
-
-### Core Components
-
-#### 1. Schema Layer (`schema.py`)
-Defines the data structures using Pydantic models:
-- `ToolSpec`: OpenAI-compatible tool definitions
-- `Message`: Chat message format (user, assistant, system, tool)
-- `AssistantToolCall`: Structured tool call with function name and arguments
-- `Record`: Complete dataset record with metadata and judge scores
-
-#### 2. Sampling Module (`sampling.py`)
-Implements three sampling strategies for tool subset selection:
-- **Random**: Uniform sampling without replacement
-- **Param-aware**: Prioritizes tools with more parameters to encourage richer examples
-- **Semantic**: Groups tools by keyword similarity for contextually related subsets
-
-#### 3. Core Generation (`core.py`)
-Orchestrates the multi-stage generation process:
-- Configuration classes (GenerationConfig, ModelConfig, RoleBasedModelConfig)
-- Tool spec loading and validation
-- OpenAI client management with structured outputs
-- Sample generation (user requests + tool calls + judge evaluation)
-- JSONL writer functions for output
-- Train/val dataset splitting
-
-#### 4. Judge System (`judge.py`)
-Implements LLM-as-a-judge evaluation:
-- **Rubric-based scoring** across three dimensions
-- **Structured outputs** using Pydantic for reliable parsing
-- **Configurable thresholds** for accept/reject decisions
-- **Rationale generation** for transparency
-
-#### 5. CLI Interface (`cli.py`)
-Command-line interface built with argparse (stdlib):
-- `version`: Display version information
-- `generate`: Run dataset generation with full configuration options
-- Simple, zero-dependency CLI using Python's standard library
-
-## Implementation Scope
-
-### What ToolsGen Does
-
-✅ **Dataset Generation**
-- Generates synthetic tool-calling datasets from tool definitions
-- Produces realistic user requests that require tool usage
-- Creates structured tool calls with plausible arguments
-- Evaluates quality using multi-dimensional rubrics
-
-✅ **Quality Control**
-- LLM-as-a-judge scoring with configurable thresholds
-- Automatic retry on low-quality samples
-- Detailed metadata and statistics in manifest files
-
-✅ **Flexibility**
-- Multiple sampling strategies for diverse datasets
-- Role-based model configuration (use different models for different tasks)
-- Train/val splitting for ML workflows
-- OpenAI-compatible API support (works with various providers)
-
-✅ **Developer Experience**
-- Python API and CLI interface
-- Type-safe configuration with Pydantic
-- Comprehensive test suite (pytest with coverage)
-- Pre-commit hooks for code quality
-
-### What ToolsGen Does NOT Do
-
-❌ **Model Training**: ToolsGen generates datasets but does not train models
-❌ **Tool Execution**: Generated tool calls are not executed; this is a dataset generator
-❌ **Multi-turn Conversations**: Currently focuses on single-turn user requests
-❌ **Custom Prompt Engineering**: Uses predefined prompt templates (customization requires code changes)
-❌ **Distributed Generation**: Runs on a single machine (no built-in distributed processing)
-❌ **Real-time API**: Designed for batch dataset generation, not real-time inference
+For detailed information about the system architecture, pipeline, and core components, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Roadmap
 
@@ -341,10 +232,10 @@ MIT License - see [LICENSE](LICENSE) for details.
 If you use ToolsGen in your research, please cite:
 
 ```bibtex
-@software{toolsgen2024,
+@software{toolsgen2025,
   title = {ToolsGen: Synthetic Tool-Calling Dataset Generator},
   author = {Ataşoğlu, Ahmet},
-  year = {2024},
+  year = {2025},
   url = {https://github.com/atasoglu/toolsgen}
 }
 ```
@@ -354,4 +245,4 @@ If you use ToolsGen in your research, please cite:
 - Built with [OpenAI API](https://platform.openai.com/)
 - Inspired by the tool-calling capabilities of modern LLMs
 - Uses [Pydantic](https://docs.pydantic.dev/) for data validation
-- CLI powered by [Typer](https://typer.tiangolo.com/)
+- Progress tracking with [tqdm](https://github.com/tqdm/tqdm)

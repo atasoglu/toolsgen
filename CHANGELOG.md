@@ -23,7 +23,7 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 - Semantic sampling strategy based on keyword similarity
 
 ### Changed
-- **[BREAKING]** Reduced dependencies from 5 to 2 (removed typer, tqdm, python-dotenv)
+- **[BREAKING]** Reduced dependencies (removed typer, python-dotenv from core dependencies)
 - **[BREAKING]** Flattened module structure - removed nested folders (io/, judge/, providers/)
 - **[BREAKING]** CLI rewritten using `argparse` instead of `typer` (stdlib only)
 - **[BREAKING]** Module reorganization:
@@ -35,8 +35,7 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
   - `from toolsgen.generator` → `from toolsgen.core`
   - `from toolsgen.judge.scorer` → `from toolsgen.judge`
 - Simplified semantic sampling algorithm (reduced complexity)
-- Progress display changed from tqdm to simple print statements
-- Environment variable loading: direct `os.environ` instead of python-dotenv
+- Environment variable loading: direct `os.environ` instead of python-dotenv for core functionality
 - Enhanced error handling and user feedback in CLI
 - Output format uses JSONL for datasets
 - Judge system uses OpenAI SDK structured outputs directly
@@ -45,8 +44,7 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 
 ### Removed
 - Dependency on `typer` (replaced with stdlib `argparse`)
-- Dependency on `tqdm` (replaced with simple print)
-- Dependency on `python-dotenv` (use direct environment variables)
+- Dependency on `python-dotenv` from core (moved to dev dependencies, used optionally in examples)
 - OpenAI wrapper abstraction layer (use SDK directly)
 - Nested folder structure (io/, judge/, providers/)
 

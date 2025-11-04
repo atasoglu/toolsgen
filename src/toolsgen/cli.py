@@ -51,7 +51,7 @@ def create_parser() -> argparse.ArgumentParser:
 
     # Generation config
     gen_parser.add_argument(
-        "--n",
+        "--num",
         type=int,
         default=10,
         help="Number of samples to generate (default: 10)",
@@ -165,7 +165,7 @@ def cmd_generate(args: argparse.Namespace) -> None:
         sys.exit(1)
 
     if args.n < 1:
-        print("Error: --n must be at least 1", file=sys.stderr)
+        print("Error: --num must be at least 1", file=sys.stderr)
         sys.exit(1)
 
     if not 0.0 <= args.train_split <= 1.0:

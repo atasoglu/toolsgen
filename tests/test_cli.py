@@ -27,7 +27,7 @@ def test_generate_creates_manifest(tmp_path: Path) -> None:
             str(tools_path),
             "--out",
             str(out_dir),
-            "--n",
+            "--num",
             "3",
             "--strategy",
             "random",
