@@ -1,10 +1,18 @@
 """Tests for sampling functions."""
 
+from __future__ import annotations
+
+import pytest
+
 from toolsgen.schema import ToolFunction, ToolSpec
 from toolsgen.sampling import (
+    _extract_keywords,
+    _tool_param_count,
+    _tool_semantic_similarity,
     batched_subsets,
     sample_param_aware_subset,
     sample_random_subset,
+    sample_semantic_subset,
 )
 
 
@@ -90,3 +98,135 @@ def test_batched_subsets_empty() -> None:
     """Test batched subsets with empty tools."""
     batches = batched_subsets([], batch_size=2, total=3, strategy="random")
     assert batches == []
+
+
+@pytest.mark.parametrize(
+    "strategy,expected_tool",
+    [
+        ("param_aware", "tool2"),  # Should prefer tool with most params (5)
+        ("semantic", None),  # No specific expectation
+        ("random", None),  # No specific expectation
+    ],
+)
+def test_batched_subsets_strategies(strategy: str, expected_tool: str | None) -> None:
+    """Test batched subsets with different strategies."""
+    tools = [
+        _create_tool("tool1", 1),
+        _create_tool("tool2", 5),
+        _create_tool("tool3", 3),
+    ]
+
+    batches = batched_subsets(tools, batch_size=2, total=3, strategy=strategy, seed=42)
+
+    assert len(batches) == 3
+    for batch in batches:
+        assert len(batch) == 2
+        if expected_tool:
+            assert any(t.function.name == expected_tool for t in batch)
+
+
+def test_sample_semantic_subset() -> None:
+    """Test semantic subset sampling."""
+    tools = [
+        ToolSpec(
+            function=ToolFunction(
+                name="email_send", description="Send an email message"
+            )
+        ),
+        ToolSpec(
+            function=ToolFunction(name="email_read", description="Read email messages")
+        ),
+        ToolSpec(
+            function=ToolFunction(
+                name="database_query", description="Query the database"
+            )
+        ),
+        ToolSpec(
+            function=ToolFunction(
+                name="database_insert", description="Insert into database"
+            )
+        ),
+    ]
+
+    result = sample_semantic_subset(tools, k=3, seed=42)
+
+    assert len(result) == 3
+    assert all(t in tools for t in result)
+
+
+def test_sample_semantic_subset_edge_cases() -> None:
+    """Test semantic subset edge cases (empty, k equals/greater than len)."""
+    # Empty tools
+    assert sample_semantic_subset([], k=5) == []
+
+    # k equals len
+    tools = [_create_tool("tool1", 1), _create_tool("tool2", 2)]
+    result = sample_semantic_subset(tools, k=2, seed=42)
+    assert len(result) == 2
+
+    # k greater than len
+    result = sample_semantic_subset([_create_tool("tool1", 1)], k=5, seed=42)
+    assert len(result) == 1
+
+
+def test_tool_param_count() -> None:
+    """Test parameter counting function."""
+    # Tool with parameters
+    tool1 = _create_tool("tool1", 3)
+    assert _tool_param_count(tool1) == 3
+
+    # Tool with no parameters
+    tool2 = ToolSpec(function=ToolFunction(name="tool2", parameters={}))
+    assert _tool_param_count(tool2) == 0
+
+    # Tool with None parameters
+    tool3 = ToolSpec(function=ToolFunction(name="tool3"))
+    assert _tool_param_count(tool3) == 0
+
+
+def test_extract_keywords() -> None:
+    """Test keyword extraction from text."""
+    # Normal text
+    keywords = _extract_keywords("Send an email to the recipient")
+    assert "send" in keywords
+    assert "email" in keywords
+    assert "recipient" in keywords
+    assert "the" not in keywords  # Stop word
+    assert "an" not in keywords  # Stop word
+
+    # Empty text
+    assert _extract_keywords("") == set()
+    # Note: _extract_keywords expects str, but handles None gracefully in implementation
+
+    # Text with special characters - note that underscores are treated as part of word
+    keywords = _extract_keywords("user-authentication & data_validation!")
+    assert "user" in keywords
+    assert "authentication" in keywords
+    # data_validation is extracted as single word due to underscore
+    assert "data_validation" in keywords or "validation" in keywords
+
+
+def test_tool_semantic_similarity() -> None:
+    """Test semantic similarity between tools."""
+    tool1 = ToolSpec(
+        function=ToolFunction(name="send_email", description="Send an email message")
+    )
+    tool2 = ToolSpec(
+        function=ToolFunction(name="read_email", description="Read email messages")
+    )
+    tool3 = ToolSpec(
+        function=ToolFunction(name="query_database", description="Query the database")
+    )
+
+    # Similar tools (both about email)
+    sim_email = _tool_semantic_similarity(tool1, tool2)
+    assert sim_email > 0
+
+    # Dissimilar tools
+    sim_diff = _tool_semantic_similarity(tool1, tool3)
+    assert sim_diff < sim_email
+
+    # Tool with no description
+    tool_no_desc = ToolSpec(function=ToolFunction(name="test"))
+    sim_no_desc = _tool_semantic_similarity(tool1, tool_no_desc)
+    assert sim_no_desc == 0.0

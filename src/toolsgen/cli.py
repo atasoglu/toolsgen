@@ -164,7 +164,7 @@ def cmd_generate(args: argparse.Namespace) -> None:
         print(f"Error: Tools file not found: {args.tools}", file=sys.stderr)
         sys.exit(1)
 
-    if args.n < 1:
+    if args.num < 1:
         print("Error: --num must be at least 1", file=sys.stderr)
         sys.exit(1)
 
@@ -178,7 +178,7 @@ def cmd_generate(args: argparse.Namespace) -> None:
 
     # Create generation config
     gen_config = GenerationConfig(
-        num_samples=args.n,
+        num_samples=args.num,
         strategy=args.strategy,
         seed=args.seed,
         train_split=args.train_split,
@@ -242,7 +242,7 @@ def cmd_generate(args: argparse.Namespace) -> None:
 
     # Generate dataset
     try:
-        print(f"Generating {args.n} samples using {args.model}...")
+        print(f"Generating {args.num} samples using {args.model}...")
         manifest = generate_dataset(args.tools, args.out, gen_config, model_config)
 
         print(f"\nGenerated {manifest['num_generated']} records")

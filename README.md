@@ -23,12 +23,6 @@ ToolsGen automates the creation of tool-calling datasets for training and evalua
 - Python 3.9+
 - OpenAI API key (or compatible API endpoint)
 
-### Dependencies
-
-- `pydantic>=2.7.0` - Data validation and settings management
-- `openai>=1.50.0` - OpenAI API client
-- `tqdm>=4.66.0` - Progress bars
-
 ## Installation
 
 ```bash

@@ -136,8 +136,10 @@ def generate_dataset(
     else:
         sampling_strategy = strategy
 
-    # Determine batch size (k) - use average of 2-3 tools per sample
-    batch_size = max(1, min(3, len(all_tools))) if len(all_tools) > 0 else 1
+    # Determine batch size (k) - use config value, capped by available tools
+    batch_size = (
+        max(1, min(gen_config.batch_size, len(all_tools))) if len(all_tools) > 0 else 1
+    )
 
     tool_subsets = batched_subsets(
         all_tools,
