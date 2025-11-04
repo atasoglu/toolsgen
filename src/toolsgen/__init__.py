@@ -1,19 +1,26 @@
 """ToolsGen: Tool-calling dataset generator (OpenAI-compatible).
 
-This package provides a modular pipeline to synthesize English tool-calling
+This package provides a modular pipeline to synthesize tool-calling
 datasets from JSON tool definitions using an LLM-as-a-judge approach.
 """
 
-from .config import GenerationConfig, ModelConfig, RoleBasedModelConfig
-from .generator import generate_dataset, load_tool_specs
-from .io.writer import write_dataset_jsonl
-from .judge.scorer import JudgeResponse, judge_tool_calls
+from .core import (
+    GenerationConfig,
+    ModelConfig,
+    RoleBasedModelConfig,
+    generate_dataset,
+    load_tool_specs,
+    write_dataset_jsonl,
+)
+from .judge import JudgeResponse, judge_tool_calls
+from .problem_generator import generate_problem
+from .tool_caller import generate_tool_calls
 from .prompts import (
-    create_caller_system_prompt,
-    create_judge_prompt,
-    create_judge_user_message,
-    create_problem_generation_prompt,
-    create_problem_generation_user_message,
+    create_tool_caller_system_prompt,
+    create_problem_generation_system_prompt,
+    create_problem_generation_user_prompt,
+    create_judge_system_prompt,
+    create_judge_user_prompt,
 )
 from .sampling import (
     batched_subsets,
@@ -23,6 +30,7 @@ from .sampling import (
 )
 from .schema import (
     AssistantToolCall,
+    Manifest,
     Message,
     Record,
     ToolFunction,
@@ -31,24 +39,35 @@ from .schema import (
 
 __all__ = [
     "__version__",
+    # Configuration
     "GenerationConfig",
     "ModelConfig",
     "RoleBasedModelConfig",
+    # Core generation
     "generate_dataset",
     "load_tool_specs",
     "write_dataset_jsonl",
+    # Judge
     "JudgeResponse",
     "judge_tool_calls",
-    "create_caller_system_prompt",
-    "create_judge_prompt",
-    "create_judge_user_message",
-    "create_problem_generation_prompt",
-    "create_problem_generation_user_message",
+    # Problem Generator
+    "generate_problem",
+    # Tool Caller
+    "generate_tool_calls",
+    # Prompts
+    "create_tool_caller_system_prompt",
+    "create_problem_generation_system_prompt",
+    "create_problem_generation_user_prompt",
+    "create_judge_system_prompt",
+    "create_judge_user_prompt",
+    # Sampling
     "batched_subsets",
     "sample_param_aware_subset",
     "sample_random_subset",
     "sample_semantic_subset",
+    # Schema
     "AssistantToolCall",
+    "Manifest",
     "Message",
     "Record",
     "ToolFunction",

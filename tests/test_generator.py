@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from toolsgen.generator import load_tool_specs
+from toolsgen.core import load_tool_specs
 
 
 def test_load_tool_specs(tmp_path: Path) -> None:

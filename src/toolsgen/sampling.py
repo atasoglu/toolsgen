@@ -65,15 +65,13 @@ def _extract_keywords(text: str) -> set[str]:
     """
     if not text:
         return set()
-    # Simple keyword extraction: lowercase, split on non-alphanumeric
     words = re.findall(r"\b\w+\b", text.lower())
-    # Filter out very common words and short words
     stop_words = {"the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for"}
     return {w for w in words if len(w) > 2 and w not in stop_words}
 
 
 def _tool_semantic_similarity(tool1: ToolSpec, tool2: ToolSpec) -> float:
-    """Calculate semantic similarity between two tools based on keywords.
+    """Calculate semantic similarity between two tools using Jaccard similarity.
 
     Args:
         tool1: First tool specification.
@@ -82,19 +80,16 @@ def _tool_semantic_similarity(tool1: ToolSpec, tool2: ToolSpec) -> float:
     Returns:
         Similarity score between 0.0 and 1.0.
     """
-    # Extract keywords from name and description
-    name1 = tool1.function.name
-    desc1 = tool1.function.description or ""
-    name2 = tool2.function.name
-    desc2 = tool2.function.description or ""
-
-    keywords1 = _extract_keywords(name1) | _extract_keywords(desc1)
-    keywords2 = _extract_keywords(name2) | _extract_keywords(desc2)
+    keywords1 = _extract_keywords(tool1.function.name) | _extract_keywords(
+        tool1.function.description or ""
+    )
+    keywords2 = _extract_keywords(tool2.function.name) | _extract_keywords(
+        tool2.function.description or ""
+    )
 
     if not keywords1 or not keywords2:
         return 0.0
 
-    # Jaccard similarity
     intersection = len(keywords1 & keywords2)
     union = len(keywords1 | keywords2)
     return intersection / union if union > 0 else 0.0
@@ -103,10 +98,11 @@ def _tool_semantic_similarity(tool1: ToolSpec, tool2: ToolSpec) -> float:
 def sample_semantic_subset(
     tools: Sequence[ToolSpec], *, k: int, seed: int | None = None
 ) -> List[ToolSpec]:
-    """Sample tools with semantic clustering preference.
+    """Sample tools with semantic similarity preference.
 
-    Strategy: Group tools by semantic similarity, then sample from diverse
-    clusters to encourage semantically related tools to appear together.
+    Strategy: Start with a random tool, then iteratively add tools that have
+    moderate similarity to already selected tools (encourages related tools
+    while avoiding duplicates).
 
     Args:
         tools: Sequence of tools to sample from.
@@ -121,42 +117,25 @@ def sample_semantic_subset(
     k = max(1, min(k, len(tools)))
     rng = random.Random(seed)
 
-    # Build similarity matrix (simplified: only compute when needed)
-    # For efficiency, use a greedy clustering approach
     if len(tools) <= k:
         return list(tools)
 
     # Start with a random tool
-    selected: List[ToolSpec] = []
     remaining = list(tools)
     rng.shuffle(remaining)
+    selected = [remaining.pop(0)]
 
-    # Greedy selection: pick tools that are semantically similar to already selected
-    # or diverse if we want coverage
-    selected.append(remaining.pop(0))
-
+    # Add tools with moderate similarity to selected ones
     while len(selected) < k and remaining:
-        # For each remaining tool, calculate average similarity to selected tools
         best_tool = None
         best_score = -1.0
 
         for tool in remaining:
-            # Prefer tools that are somewhat similar (semantic clustering)
-            # but not too similar (avoid redundancy)
-            avg_sim = sum(
-                _tool_semantic_similarity(tool, sel) for sel in selected
-            ) / len(selected)
-
-            # Score: prefer moderate similarity (0.2-0.6 range)
-            if 0.2 <= avg_sim <= 0.6:
-                score = avg_sim
-            elif avg_sim > 0.6:
-                # Too similar, penalize
-                score = avg_sim * 0.5
-            else:
-                # Too different, still consider but with lower weight
-                score = avg_sim * 0.8
-
+            avg_sim = sum(_tool_semantic_similarity(tool, s) for s in selected) / len(
+                selected
+            )
+            # Prefer moderate similarity (0.2-0.6), penalize very high or very low
+            score = avg_sim if 0.2 <= avg_sim <= 0.6 else avg_sim * 0.5
             if score > best_score:
                 best_score = score
                 best_tool = tool
@@ -165,7 +144,7 @@ def sample_semantic_subset(
             selected.append(best_tool)
             remaining.remove(best_tool)
         else:
-            # Fallback: pick random if no good semantic match
+            # Fallback to random if no good match
             selected.append(remaining.pop(0))
 
     return selected

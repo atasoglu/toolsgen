@@ -1,31 +1,49 @@
-"""Dataset writer for JSONL output."""
+"""I/O operations for dataset generation (loading and writing)."""
 
 from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
-from ..schema import Record
+from ..schema import Record, ToolSpec
+
+
+def load_tool_specs(tools_path: Path) -> List[ToolSpec]:
+    """Load tool specifications from a JSON file.
+
+    Args:
+        tools_path: Path to JSON file containing OpenAI-compatible tool definitions.
+
+    Returns:
+        List of validated ToolSpec objects.
+
+    Raises:
+        ValueError: If the JSON structure is invalid.
+    """
+    with tools_path.open("r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    if not isinstance(data, list):
+        raise ValueError("tools.json must contain a list of tool definitions")
+
+    return [ToolSpec.model_validate(tool) for tool in data]
 
 
 def write_dataset_jsonl(
     records: List[Record],
     output_path: Path,
-    split: Optional[str] = None,
 ) -> None:
     """Write records to a JSONL file.
 
     Args:
         records: List of Record objects to write.
         output_path: Path to output JSONL file.
-        split: Optional split name (e.g., "train", "val") for filename.
     """
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     with output_path.open("w", encoding="utf-8") as f:
         for record in records:
-            # Convert record to dict and serialize to JSON
             record_dict = record.model_dump(exclude_none=True)
             json_line = json.dumps(record_dict, ensure_ascii=False)
             f.write(json_line + "\n")

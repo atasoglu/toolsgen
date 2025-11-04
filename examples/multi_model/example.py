@@ -1,11 +1,16 @@
 """Multi-model example - Using different models for different roles"""
 
 from pathlib import Path
-from dotenv import load_dotenv
-from toolsgen.config import GenerationConfig, ModelConfig, RoleBasedModelConfig
-from toolsgen.generator import generate_dataset
 
-load_dotenv()
+from toolsgen import (
+    GenerationConfig,
+    ModelConfig,
+    RoleBasedModelConfig,
+    generate_dataset,
+)
+
+# NOTE: Set OPENAI_API_KEY environment variable before running
+# Example: export OPENAI_API_KEY="your-api-key-here"
 
 tools_path = Path(__file__).parent / "tools.json"
 output_dir = Path(__file__).parent / "output"

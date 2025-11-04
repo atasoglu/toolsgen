@@ -1,6 +1,6 @@
 """Tests for configuration classes."""
 
-from toolsgen.config import GenerationConfig, ModelConfig
+from toolsgen.core import GenerationConfig, ModelConfig
 
 
 def test_generation_config_defaults() -> None:

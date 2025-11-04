@@ -1,21 +1,14 @@
-"""LLM-as-a-judge scoring for tool-calling datasets.
-
-Implements rubric-based scoring with three dimensions:
-- Tool relevance (0-0.4)
-- Argument plausibility & schema adherence (0-0.4)
-- Response clarity & completeness (0-0.2)
-Total score: 0-1.0, verdict: accept if score >= 0.7
-"""
+"""LLM-as-a-judge scoring for tool-calling datasets."""
 
 from __future__ import annotations
 
 from typing import Any, Dict, List, Literal
 
+from openai import OpenAI
 from pydantic import BaseModel, Field
 
-from ..providers.openai_compat import ChatModelClient
-from ..prompts import create_judge_prompt, create_judge_user_message
-from ..schema import AssistantToolCall, ToolSpec
+from .prompts import create_judge_system_prompt, create_judge_user_prompt
+from .schema import AssistantToolCall, ToolSpec
 
 
 class JudgeResponse(BaseModel):
@@ -69,7 +62,8 @@ class JudgeResponse(BaseModel):
 
 
 def judge_tool_calls(
-    client: ChatModelClient,
+    client: OpenAI,
+    model: str,
     user_request: str,
     tools: List[ToolSpec],
     tool_calls: List[AssistantToolCall],
@@ -78,7 +72,8 @@ def judge_tool_calls(
     """Evaluate tool calls using LLM-as-a-judge.
 
     Args:
-        client: LLM client for judging.
+        client: OpenAI client for judging.
+        model: Model name to use.
         user_request: The original user request.
         tools: Available tool specifications.
         tool_calls: Generated tool calls to evaluate.
@@ -97,16 +92,30 @@ def judge_tool_calls(
             rationale="No tool calls provided",
         )
 
-    prompt = create_judge_prompt(user_request, tools, tool_calls)
-
+    system_prompt = create_judge_system_prompt(user_request, tools, tool_calls)
+    user_prompt = create_judge_user_prompt()
     messages = [
-        {"role": "system", "content": prompt},
-        {"role": "user", "content": create_judge_user_message()},
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt},
     ]
 
-    return client.create_structured(
+    response = client.chat.completions.create(
+        model=model,
         messages=messages,
-        response_model=JudgeResponse,
         temperature=temperature,
         max_tokens=500,
+        response_format={
+            "type": "json_schema",
+            "json_schema": {
+                "name": JudgeResponse.__name__,
+                "schema": JudgeResponse.model_json_schema(),
+                "strict": True,
+            },
+        },
     )
+
+    content = response.choices[0].message.content
+    if not content:
+        raise ValueError("Judge LLM returned empty content")
+
+    return JudgeResponse.model_validate_json(content)

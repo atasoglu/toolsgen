@@ -1,194 +1,290 @@
+"""Command-line interface for ToolsGen."""
+
 from __future__ import annotations
 
+import argparse
 import os
+import sys
 from pathlib import Path
-from typing import Optional, Union
-
-import typer
+from typing import Union
 
 from . import __version__
-from .config import GenerationConfig, ModelConfig, RoleBasedModelConfig
-from .generator import generate_dataset
+from .core import GenerationConfig, ModelConfig, RoleBasedModelConfig, generate_dataset
 
 
-app = typer.Typer(help="ToolsGen CLI - generate tool-calling datasets from tool specs")
+def create_parser() -> argparse.ArgumentParser:
+    """Create the argument parser for the CLI.
 
-
-@app.command()
-def version() -> None:
-    """Show package version."""
-
-    typer.echo(__version__)
-
-
-@app.command()
-def generate(
-    tools: Path = typer.Option(
-        ...,
-        exists=True,
-        file_okay=True,
-        dir_okay=False,
-        readable=True,
-        help="Path to tools.json (OpenAI-compatible tools)",
-    ),
-    out: Path = typer.Option(..., help="Output directory for dataset files"),
-    n: int = typer.Option(10, min=1, help="Number of samples to generate"),
-    strategy: str = typer.Option(
-        "random", help="Sampling strategy: random, param_aware, or semantic"
-    ),
-    seed: Optional[int] = typer.Option(None, help="Random seed for deterministic runs"),
-    model: str = typer.Option(
-        "gpt-4o-mini",
-        help="Model name (e.g., gpt-4o-mini, gpt-4, claude-3-sonnet)",
-    ),
-    base_url: Optional[str] = typer.Option(
-        None,
-        help="Custom base URL for OpenAI-compatible API (overrides OPENAI_BASE_URL)",
-    ),
-    temperature: float = typer.Option(
-        0.7, min=0.0, max=2.0, help="Sampling temperature"
-    ),
-    max_tokens: Optional[int] = typer.Option(
-        None, min=1, help="Maximum tokens per response"
-    ),
-    language: str = typer.Option(
-        "english",
-        help="Language name for user requests (e.g., english, turkish, spanish, french, german)",
-    ),
-    problem_model: Optional[str] = typer.Option(
-        None, help="Model for problem generation (defaults to --model)"
-    ),
-    caller_model: Optional[str] = typer.Option(
-        None, help="Model for tool calling (defaults to --model)"
-    ),
-    judge_model: Optional[str] = typer.Option(
-        None, help="Model for judging (defaults to --model)"
-    ),
-    problem_temp: Optional[float] = typer.Option(
-        None,
-        min=0.0,
-        max=2.0,
-        help="Temperature for problem generation (defaults to --temperature)",
-    ),
-    caller_temp: Optional[float] = typer.Option(
-        None,
-        min=0.0,
-        max=2.0,
-        help="Temperature for tool calling (defaults to --temperature)",
-    ),
-    judge_temp: Optional[float] = typer.Option(
-        None,
-        min=0.0,
-        max=2.0,
-        help="Temperature for judging (defaults to --temperature)",
-    ),
-    max_attempts: int = typer.Option(
-        3, min=1, help="Maximum retry attempts per sample"
-    ),
-) -> None:
-    """Generate a tool-calling dataset from tool specifications.
-
-    This command uses an LLM to generate natural language user requests and
-    corresponding tool calls, creating a dataset suitable for training or
-    evaluating tool-calling models.
+    Returns:
+        Configured ArgumentParser.
     """
-    if strategy not in ("random", "param_aware", "semantic"):
-        typer.echo(
-            f"Error: strategy must be 'random', 'param_aware', or 'semantic', got '{strategy}'",
-            err=True,
-        )
-        raise typer.Exit(1)
-
-    # Load environment variables
-    dotenv_path = Path(".env")
-    if dotenv_path.exists():
-        try:
-            from dotenv import load_dotenv
-
-            load_dotenv(dotenv_path)
-        except ImportError:
-            pass  # python-dotenv not installed, skip
-
-    gen_config = GenerationConfig(
-        num_samples=n,
-        strategy=strategy,
-        seed=seed,
-        train_split=1.0,  # Default: no split, can be added as CLI option later
-        language=language,
-        max_attempts=max_attempts,
+    parser = argparse.ArgumentParser(
+        prog="toolsgen",
+        description="ToolsGen - generate tool-calling datasets from tool specs",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
-    # Create role-based config if any role-specific options are provided
+    subparsers = parser.add_subparsers(dest="command", help="Available commands")
+
+    # Version command
+    subparsers.add_parser("version", help="Show package version")
+
+    # Generate command
+    gen_parser = subparsers.add_parser(
+        "generate",
+        help="Generate a tool-calling dataset from tool specifications",
+    )
+
+    # Required arguments
+    gen_parser.add_argument(
+        "--tools",
+        type=Path,
+        required=True,
+        help="Path to tools.json (OpenAI-compatible tools)",
+    )
+    gen_parser.add_argument(
+        "--out",
+        type=Path,
+        required=True,
+        help="Output directory for dataset files",
+    )
+
+    # Generation config
+    gen_parser.add_argument(
+        "--n",
+        type=int,
+        default=10,
+        help="Number of samples to generate (default: 10)",
+    )
+    gen_parser.add_argument(
+        "--strategy",
+        choices=["random", "param_aware", "semantic"],
+        default="random",
+        help="Sampling strategy (default: random)",
+    )
+    gen_parser.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help="Random seed for deterministic runs",
+    )
+    gen_parser.add_argument(
+        "--language",
+        default="english",
+        help="Language name for user requests (default: english)",
+    )
+    gen_parser.add_argument(
+        "--max-attempts",
+        type=int,
+        default=3,
+        help="Maximum retry attempts per sample (default: 3)",
+    )
+    gen_parser.add_argument(
+        "--train-split",
+        type=float,
+        default=1.0,
+        help="Fraction of records for training split 0.0-1.0 (default: 1.0, no split)",
+    )
+
+    # Model config
+    gen_parser.add_argument(
+        "--model",
+        default="gpt-4o-mini",
+        help="Model name (default: gpt-4o-mini)",
+    )
+    gen_parser.add_argument(
+        "--base-url",
+        default=None,
+        help="Custom base URL for OpenAI-compatible API",
+    )
+    gen_parser.add_argument(
+        "--temperature",
+        type=float,
+        default=0.7,
+        help="Sampling temperature (default: 0.7)",
+    )
+    gen_parser.add_argument(
+        "--max-tokens",
+        type=int,
+        default=None,
+        help="Maximum tokens per response",
+    )
+
+    # Role-specific model config
+    gen_parser.add_argument(
+        "--problem-model",
+        default=None,
+        help="Model for problem generation (defaults to --model)",
+    )
+    gen_parser.add_argument(
+        "--caller-model",
+        default=None,
+        help="Model for tool calling (defaults to --model)",
+    )
+    gen_parser.add_argument(
+        "--judge-model",
+        default=None,
+        help="Model for judging (defaults to --model)",
+    )
+    gen_parser.add_argument(
+        "--problem-temp",
+        type=float,
+        default=None,
+        help="Temperature for problem generation (defaults to --temperature)",
+    )
+    gen_parser.add_argument(
+        "--caller-temp",
+        type=float,
+        default=None,
+        help="Temperature for tool calling (defaults to --temperature)",
+    )
+    gen_parser.add_argument(
+        "--judge-temp",
+        type=float,
+        default=None,
+        help="Temperature for judging (defaults to --temperature)",
+    )
+
+    return parser
+
+
+def cmd_version() -> None:
+    """Show package version."""
+    print(__version__)
+
+
+def cmd_generate(args: argparse.Namespace) -> None:
+    """Run dataset generation.
+
+    Args:
+        args: Parsed command-line arguments.
+    """
+    # Validate inputs
+    if not args.tools.exists():
+        print(f"Error: Tools file not found: {args.tools}", file=sys.stderr)
+        sys.exit(1)
+
+    if args.n < 1:
+        print("Error: --n must be at least 1", file=sys.stderr)
+        sys.exit(1)
+
+    if not 0.0 <= args.train_split <= 1.0:
+        print("Error: --train-split must be between 0.0 and 1.0", file=sys.stderr)
+        sys.exit(1)
+
+    if not 0.0 <= args.temperature <= 2.0:
+        print("Error: --temperature must be between 0.0 and 2.0", file=sys.stderr)
+        sys.exit(1)
+
+    # Create generation config
+    gen_config = GenerationConfig(
+        num_samples=args.n,
+        strategy=args.strategy,
+        seed=args.seed,
+        train_split=args.train_split,
+        language=args.language,
+        max_attempts=args.max_attempts,
+    )
+
+    # Create model config
     model_config: Union[ModelConfig, RoleBasedModelConfig]
     if (
-        problem_model
-        or caller_model
-        or judge_model
-        or problem_temp is not None
-        or caller_temp is not None
-        or judge_temp is not None
+        args.problem_model
+        or args.caller_model
+        or args.judge_model
+        or args.problem_temp is not None
+        or args.caller_temp is not None
+        or args.judge_temp is not None
     ):
+        # Role-based configuration
         model_config = RoleBasedModelConfig(
             problem_generator=ModelConfig(
-                model=problem_model or model,
-                base_url=base_url or os.environ.get("OPENAI_BASE_URL"),
+                model=args.problem_model or args.model,
+                base_url=args.base_url or os.environ.get("OPENAI_BASE_URL"),
                 api_key_env="OPENAI_API_KEY",
-                temperature=problem_temp if problem_temp is not None else temperature,
-                max_tokens=max_tokens,
+                temperature=(
+                    args.problem_temp
+                    if args.problem_temp is not None
+                    else args.temperature
+                ),
+                max_tokens=args.max_tokens,
             ),
             tool_caller=ModelConfig(
-                model=caller_model or model,
-                base_url=base_url or os.environ.get("OPENAI_BASE_URL"),
+                model=args.caller_model or args.model,
+                base_url=args.base_url or os.environ.get("OPENAI_BASE_URL"),
                 api_key_env="OPENAI_API_KEY",
-                temperature=caller_temp if caller_temp is not None else temperature,
-                max_tokens=max_tokens,
+                temperature=(
+                    args.caller_temp
+                    if args.caller_temp is not None
+                    else args.temperature
+                ),
+                max_tokens=args.max_tokens,
             ),
             judge=ModelConfig(
-                model=judge_model or model,
-                base_url=base_url or os.environ.get("OPENAI_BASE_URL"),
+                model=args.judge_model or args.model,
+                base_url=args.base_url or os.environ.get("OPENAI_BASE_URL"),
                 api_key_env="OPENAI_API_KEY",
-                temperature=judge_temp if judge_temp is not None else temperature,
-                max_tokens=max_tokens,
+                temperature=(
+                    args.judge_temp if args.judge_temp is not None else args.temperature
+                ),
+                max_tokens=args.max_tokens,
             ),
         )
     else:
+        # Single model configuration
         model_config = ModelConfig(
-            model=model,
-            base_url=base_url or os.environ.get("OPENAI_BASE_URL"),
+            model=args.model,
+            base_url=args.base_url or os.environ.get("OPENAI_BASE_URL"),
             api_key_env="OPENAI_API_KEY",
-            temperature=temperature,
-            max_tokens=max_tokens,
+            temperature=args.temperature,
+            max_tokens=args.max_tokens,
         )
 
+    # Generate dataset
     try:
-        typer.echo(f"Generating {n} samples using {model}...")
-        manifest = generate_dataset(tools, out, gen_config, model_config)
+        print(f"Generating {args.n} samples using {args.model}...")
+        manifest = generate_dataset(args.tools, args.out, gen_config, model_config)
 
-        typer.echo(f"\nGenerated {manifest['num_generated']} records")
-        typer.echo(f"  - Requested: {manifest['num_requested']}")
-        typer.echo(f"  - Failed: {manifest['num_failed']}")
-        typer.echo(f"  - Output directory: {out}")
+        print(f"\nGenerated {manifest['num_generated']} records")
+        print(f"  - Requested: {manifest['num_requested']}")
+        print(f"  - Failed: {manifest['num_failed']}")
+        print(f"  - Output directory: {args.out}")
 
         splits = manifest.get("splits", {})
         if splits:
-            typer.echo("  - Splits:")
+            print("  - Splits:")
             for split_name, count in splits.items():
-                typer.echo(f"    * {split_name}.jsonl: {count} records")
+                print(f"    * {split_name}.jsonl: {count} records")
         else:
-            typer.echo(f"  - train.jsonl: {manifest['num_generated']} records")
+            print(f"  - train.jsonl: {manifest['num_generated']} records")
 
-        typer.echo(f"  - Manifest: {out / 'manifest.json'}")
+        print(f"  - Manifest: {args.out / 'manifest.json'}")
+
     except ValueError as e:
-        typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
     except Exception as e:
-        typer.echo(f"Unexpected error: {e}", err=True)
-        raise typer.Exit(1)
+        print(f"Unexpected error: {e}", file=sys.stderr)
+        sys.exit(1)
 
 
 def main() -> None:
-    app()
+    """Main entry point for the CLI."""
+    parser = create_parser()
+    args = parser.parse_args()
+
+    if not args.command:
+        parser.print_help()
+        sys.exit(0)
+
+    if args.command == "version":
+        cmd_version()
+    elif args.command == "generate":
+        cmd_generate(args)
+    else:
+        parser.print_help()
+        sys.exit(1)
 
 
-if __name__ == "__main__":  # pragma: no cover
+if __name__ == "__main__":
     main()

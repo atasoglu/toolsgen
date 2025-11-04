@@ -21,31 +21,37 @@ ToolsGen automates the creation of tool-calling datasets for training and evalua
 ## Installation
 
 ```bash
-# Recommended: Use uv for fast dependency management
+# Using pip
+pip install -r requirements.txt
+
+# Or using uv (recommended for faster installation)
 uv venv
 . .venv/Scripts/activate  # Windows PowerShell: .venv\Scripts\Activate.ps1
 uv pip install -r requirements.txt
 
 # For development (includes testing and linting tools)
-uv pip install -r requirements-dev.txt
+pip install -r requirements-dev.txt
 ```
+
+**Dependencies:**
+- `pydantic>=2.7.0` - Data validation and structured outputs
+- `openai>=1.50.0` - OpenAI API client
+
+That's it! Only 2 dependencies for the core functionality.
 
 ## Configuration
 
-Create a `.env` file in the project root with your OpenAI API key:
+Set your OpenAI API key as an environment variable:
 
 ```bash
-# Copy the example file
-cp .env.example .env
+# Linux/macOS
+export OPENAI_API_KEY="your-api-key-here"
 
-# Edit .env and add your API key
-OPENAI_API_KEY=sk-your-actual-api-key-here
-```
+# Windows PowerShell
+$env:OPENAI_API_KEY="your-api-key-here"
 
-Or set the environment variable directly:
-```bash
-export OPENAI_API_KEY="your-api-key-here"  # Linux/macOS
-$env:OPENAI_API_KEY="your-api-key-here"    # Windows PowerShell
+# Windows CMD
+set OPENAI_API_KEY=your-api-key-here
 ```
 
 ## Usage
@@ -77,11 +83,7 @@ python -m toolsgen.cli generate \
 
 ```python
 from pathlib import Path
-from dotenv import load_dotenv
-from toolsgen.config import GenerationConfig, ModelConfig
-from toolsgen.generator import generate_dataset
-
-load_dotenv()
+from toolsgen.core import GenerationConfig, ModelConfig, generate_dataset
 
 # Configuration
 tools_path = Path("tools.json")
@@ -250,39 +252,27 @@ Implements three sampling strategies for tool subset selection:
 - **Param-aware**: Prioritizes tools with more parameters to encourage richer examples
 - **Semantic**: Groups tools by keyword similarity for contextually related subsets
 
-#### 3. Generation Pipeline (`generator.py`)
+#### 3. Core Generation (`core.py`)
 Orchestrates the multi-stage generation process:
-1. Loads and validates tool specifications
-2. Creates separate LLM clients for each role
-3. Samples tool subsets according to strategy
-4. Generates user requests, tool calls, and evaluations
-5. Handles retries and failure tracking
-6. Outputs JSONL datasets with optional train/val splitting
+- Configuration classes (GenerationConfig, ModelConfig, RoleBasedModelConfig)
+- Tool spec loading and validation
+- OpenAI client management with structured outputs
+- Sample generation (user requests + tool calls + judge evaluation)
+- JSONL writer functions for output
+- Train/val dataset splitting
 
-#### 4. Judge System (`judge/scorer.py`)
+#### 4. Judge System (`judge.py`)
 Implements LLM-as-a-judge evaluation:
 - **Rubric-based scoring** across three dimensions
-- **Structured outputs** using Pydantic models for reliable parsing
+- **Structured outputs** using Pydantic for reliable parsing
 - **Configurable thresholds** for accept/reject decisions
 - **Rationale generation** for transparency
 
-#### 5. Provider Abstraction (`providers/openai_compat.py`)
-OpenAI-compatible client with production features:
-- Retry logic with exponential backoff
-- Rate limiting using token bucket algorithm
-- Structured outputs support for reliable JSON parsing
-- Environment-based API key management
-
-#### 6. Configuration System (`config.py`)
-Type-safe configuration using dataclasses:
-- `GenerationConfig`: Runtime parameters (samples, strategy, seed, splits)
-- `ModelConfig`: Model-specific settings (model name, temperature, base URL)
-- `RoleBasedModelConfig`: Different models for different pipeline roles
-
-#### 7. CLI Interface (`cli.py`)
-Command-line interface built with Typer:
+#### 5. CLI Interface (`cli.py`)
+Command-line interface built with argparse (stdlib):
 - `version`: Display version information
 - `generate`: Run dataset generation with full configuration options
+- Simple, zero-dependency CLI using Python's standard library
 
 ## Implementation Scope
 

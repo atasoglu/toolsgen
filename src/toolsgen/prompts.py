@@ -11,10 +11,10 @@ from .schema import AssistantToolCall, ToolSpec
 PROMPTS_DIR = Path(__file__).parent / "prompts"
 
 
-def create_problem_generation_prompt(
+def create_problem_generation_system_prompt(
     tools: List[ToolSpec], language: str = "english"
 ) -> str:
-    """Create a prompt for generating natural language user requests.
+    """Create system prompt for generating natural language user requests.
 
     Args:
         tools: List of available tools.
@@ -29,34 +29,40 @@ def create_problem_generation_prompt(
     ]
     tools_list = "\n".join(tools_desc)
 
-    template = (PROMPTS_DIR / "problem_generation.txt").read_text(encoding="utf-8")
+    template = (PROMPTS_DIR / "problem_generation_system.txt").read_text(
+        encoding="utf-8"
+    )
     return template.format(tools_list=tools_list, language=language)
 
 
-def create_problem_generation_user_message() -> str:
-    """User message for problem generation prompt.
+def create_problem_generation_user_prompt() -> str:
+    """Create user prompt for problem generation.
 
     Returns:
-        User message content.
+        User prompt content.
     """
-    return "Generate a realistic user request that would require using these tools."
+    return (
+        (PROMPTS_DIR / "problem_generation_user.txt")
+        .read_text(encoding="utf-8")
+        .strip()
+    )
 
 
-def create_caller_system_prompt() -> str:
+def create_tool_caller_system_prompt() -> str:
     """System prompt for tool-calling assistant generation.
 
     Returns:
         System prompt for generating tool calls.
     """
-    return "You are a helpful assistant that uses tools to answer user requests. Generate appropriate tool calls based on the user's request."
+    return (PROMPTS_DIR / "tool_caller_system.txt").read_text(encoding="utf-8").strip()
 
 
-def create_judge_prompt(
+def create_judge_system_prompt(
     user_request: str,
     tools: List[ToolSpec],
     tool_calls: List[AssistantToolCall],
 ) -> str:
-    """Create the judge prompt for evaluating tool calls.
+    """Create system prompt for evaluating tool calls.
 
     Args:
         user_request: The original user request.
@@ -80,7 +86,7 @@ def create_judge_prompt(
         or "None"
     )
 
-    template = (PROMPTS_DIR / "judge.txt").read_text(encoding="utf-8")
+    template = (PROMPTS_DIR / "judge_system.txt").read_text(encoding="utf-8")
     return template.format(
         user_request=user_request,
         tools_list=tools_list,
@@ -88,10 +94,10 @@ def create_judge_prompt(
     )
 
 
-def create_judge_user_message() -> str:
-    """User message for judge prompt.
+def create_judge_user_prompt() -> str:
+    """Create user prompt for judge evaluation.
 
     Returns:
-        User message content.
+        User prompt content.
     """
-    return "Evaluate the tool calls according to the rubric and return the JSON score."
+    return (PROMPTS_DIR / "judge_user.txt").read_text(encoding="utf-8").strip()
