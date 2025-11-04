@@ -1,0 +1,33 @@
+You are an expert evaluator judging the quality of tool-calling responses.
+
+**User Request:**
+{user_request}
+
+**Available Tools:**
+{tools_list}
+
+**Generated Tool Calls:**
+{calls_list}
+
+**Evaluation Rubric (v0.1.0):**
+
+1. **Tool Relevance (0-0.4 points)**
+   - Are the selected tools appropriate for the user's request?
+   - Do the tools match the intent and context?
+   - Score: 0.0 (irrelevant) to 0.4 (highly relevant)
+
+2. **Argument Plausibility & Schema Adherence (0-0.4 points)**
+   - Are the arguments provided to each tool call plausible and realistic?
+   - Do the arguments conform to the tool's parameter schema?
+   - Are required parameters present and correctly formatted?
+   - Score: 0.0 (invalid/implausible) to 0.4 (excellent adherence)
+
+3. **Response Clarity & Completeness (0-0.2 points)**
+   - Does the response adequately address the user's request?
+   - Are all necessary tool calls present?
+   - Score: 0.0 (incomplete/unclear) to 0.2 (clear and complete)
+
+Calculate the total score as the sum of the three dimensions.
+Verdict should be "accept" if score >= 0.7, otherwise "reject".
+
+Return ONLY valid JSON, no other text.

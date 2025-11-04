@@ -1,0 +1,64 @@
+[
+  {
+    "function": {
+      "description": "Get current weather for a location",
+      "name": "get_weather",
+      "parameters": {
+        "properties": {
+          "location": {
+            "description": "City name or coordinates",
+            "type": "string"
+          },
+          "unit": {
+            "description": "Temperature unit",
+            "enum": [
+              "celsius",
+              "fahrenheit"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "location"
+        ],
+        "type": "object"
+      }
+    },
+    "type": "function"
+  },
+  {
+    "function": {
+      "description": "Perform basic arithmetic operations",
+      "name": "calculate",
+      "parameters": {
+        "properties": {
+          "a": {
+            "description": "First number",
+            "type": "number"
+          },
+          "b": {
+            "description": "Second number",
+            "type": "number"
+          },
+          "operation": {
+            "description": "Arithmetic operation",
+            "enum": [
+              "add",
+              "subtract",
+              "multiply",
+              "divide"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "operation",
+          "a",
+          "b"
+        ],
+        "type": "object"
+      }
+    },
+    "type": "function"
+  }
+]
