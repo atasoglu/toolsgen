@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 from toolsgen import (
     GenerationConfig,
     ModelConfig,
@@ -9,14 +11,19 @@ from toolsgen import (
     generate_dataset,
 )
 
+# Load environment variables from .env file
+load_dotenv()
+
 # NOTE: Set OPENAI_API_KEY environment variable before running
-# Example: export OPENAI_API_KEY="your-api-key-here"
+# You can either:
+# 1. Create a .env file with: OPENAI_API_KEY=your-api-key-here
+# 2. Or export in terminal: export OPENAI_API_KEY="your-api-key-here"
 
 tools_path = Path(__file__).parent / "tools.json"
 output_dir = Path(__file__).parent / "output"
 
 gen_config = GenerationConfig(
-    num_samples=10,
+    num_samples=5,
     strategy="random",
     seed=42,
     max_attempts=3,
