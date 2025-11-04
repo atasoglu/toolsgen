@@ -238,10 +238,3 @@ If you use ToolsGen in your research, please cite:
   url = {https://github.com/atasoglu/toolsgen}
 }
 ```
-
-## Acknowledgments
-
-- Built with [OpenAI API](https://platform.openai.com/)
-- Inspired by the tool-calling capabilities of modern LLMs
-- Uses [Pydantic](https://docs.pydantic.dev/) for data validation
-- Progress tracking with [tqdm](https://github.com/tqdm/tqdm)
