@@ -27,16 +27,6 @@ You are an expert evaluator judging the quality of tool-calling responses.
    - Are all necessary tool calls present?
    - Score: 0.0 (incomplete/unclear) to 0.2 (clear and complete)
 
-**Output Format (JSON only):**
-{{
-  "tool_relevance": <float 0.0-0.4>,
-  "argument_quality": <float 0.0-0.4>,
-  "clarity": <float 0.0-0.2>,
-  "score": <float 0.0-1.0>,
-  "verdict": "<accept|reject>",
-  "rationale": "<brief explanation>"
-}}
-
 Calculate the total score as the sum of the three dimensions.
 Verdict should be "accept" if score >= 0.7, otherwise "reject".
 
