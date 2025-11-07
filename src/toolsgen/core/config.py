@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Literal
 
 
 @dataclass
@@ -21,7 +21,7 @@ class GenerationConfig:
     """
 
     num_samples: int = 10
-    strategy: str = "random"
+    strategy: Literal["random", "param_aware", "semantic"] = "random"
     seed: Optional[int] = None
     train_split: float = 1.0
     language: str = "english"

@@ -6,9 +6,9 @@ import pytest
 
 from toolsgen.schema import ToolFunction, ToolSpec
 from toolsgen.sampling import (
-    _extract_keywords,
-    _tool_param_count,
-    _tool_semantic_similarity,
+    extract_keywords,
+    tool_param_count,
+    tool_semantic_similarity,
     batched_subsets,
     sample_param_aware_subset,
     sample_random_subset,
@@ -173,21 +173,21 @@ def test_tool_param_count() -> None:
     """Test parameter counting function."""
     # Tool with parameters
     tool1 = _create_tool("tool1", 3)
-    assert _tool_param_count(tool1) == 3
+    assert tool_param_count(tool1) == 3
 
     # Tool with no parameters
     tool2 = ToolSpec(function=ToolFunction(name="tool2", parameters={}))
-    assert _tool_param_count(tool2) == 0
+    assert tool_param_count(tool2) == 0
 
     # Tool with None parameters
     tool3 = ToolSpec(function=ToolFunction(name="tool3"))
-    assert _tool_param_count(tool3) == 0
+    assert tool_param_count(tool3) == 0
 
 
 def test_extract_keywords() -> None:
     """Test keyword extraction from text."""
     # Normal text
-    keywords = _extract_keywords("Send an email to the recipient")
+    keywords = extract_keywords("Send an email to the recipient")
     assert "send" in keywords
     assert "email" in keywords
     assert "recipient" in keywords
@@ -195,11 +195,11 @@ def test_extract_keywords() -> None:
     assert "an" not in keywords  # Stop word
 
     # Empty text
-    assert _extract_keywords("") == set()
-    # Note: _extract_keywords expects str, but handles None gracefully in implementation
+    assert extract_keywords("") == set()
+    # Note: extract_keywords expects str, but handles None gracefully in implementation
 
     # Text with special characters - note that underscores are treated as part of word
-    keywords = _extract_keywords("user-authentication & data_validation!")
+    keywords = extract_keywords("user-authentication & data_validation!")
     assert "user" in keywords
     assert "authentication" in keywords
     # data_validation is extracted as single word due to underscore
@@ -219,14 +219,14 @@ def test_tool_semantic_similarity() -> None:
     )
 
     # Similar tools (both about email)
-    sim_email = _tool_semantic_similarity(tool1, tool2)
+    sim_email = tool_semantic_similarity(tool1, tool2)
     assert sim_email > 0
 
     # Dissimilar tools
-    sim_diff = _tool_semantic_similarity(tool1, tool3)
+    sim_diff = tool_semantic_similarity(tool1, tool3)
     assert sim_diff < sim_email
 
     # Tool with no description
     tool_no_desc = ToolSpec(function=ToolFunction(name="test"))
-    sim_no_desc = _tool_semantic_similarity(tool1, tool_no_desc)
+    sim_no_desc = tool_semantic_similarity(tool1, tool_no_desc)
     assert sim_no_desc == 0.0
