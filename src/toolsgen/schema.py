@@ -38,6 +38,7 @@ class Record(BaseModel):
     problem_metadata: Dict[str, Any] = Field(default_factory=dict)
     judge: Dict[str, Any] = Field(default_factory=dict)
     quality_tags: List[str] = Field(default_factory=list)
+    tools_metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
 class Manifest(BaseModel):

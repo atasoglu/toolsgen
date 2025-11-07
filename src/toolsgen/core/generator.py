@@ -95,6 +95,7 @@ def _generate_sample(
         assistant_calls=tool_calls,
         problem_metadata={"generated": True, "user_request": user_request},
         judge=judge_dict,
+        tools_metadata={"num_tools": len(tools)},
     )
 
 
@@ -146,17 +147,13 @@ def generate_dataset(
     else:
         sampling_strategy = strategy
 
-    # Determine batch size (k) - use config value, capped by available tools
-    batch_size = (
-        max(1, min(gen_config.batch_size, len(all_tools))) if len(all_tools) > 0 else 1
-    )
-
     tool_subsets = batched_subsets(
         all_tools,
-        batch_size=batch_size,
         total=gen_config.num_samples,
         strategy=sampling_strategy,
         seed=gen_config.seed,
+        k_min=gen_config.k_min,
+        k_max=gen_config.k_max,
     )
 
     # Generate records
