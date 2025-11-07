@@ -32,7 +32,8 @@ gen_config = GenerationConfig(
     train_split=0.8,
     language="turkish",
     max_attempts=3,
-    batch_size=3,
+    k_min=1,
+    k_max=5,
 )
 
 # Different models for different roles

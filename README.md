@@ -138,7 +138,8 @@ Each line in `train.jsonl` (or `val.jsonl`) is a JSON record:
     "model": "gpt-4o",
     "temperature": 0.0
   },
-  "quality_tags": []
+  "quality_tags": [],
+  "tools_metadata": {"num_tools": 5}
 }
 ```
 

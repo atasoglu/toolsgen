@@ -86,7 +86,7 @@ def test_batched_subsets() -> None:
         _create_tool("tool3", 3),
     ]
 
-    batches = batched_subsets(tools, batch_size=2, total=3, strategy="random", seed=42)
+    batches = batched_subsets(tools, total=3, strategy="random", seed=42, k_min=2, k_max=2)
 
     assert len(batches) == 3
     for batch in batches:
@@ -96,7 +96,7 @@ def test_batched_subsets() -> None:
 
 def test_batched_subsets_empty() -> None:
     """Test batched subsets with empty tools."""
-    batches = batched_subsets([], batch_size=2, total=3, strategy="random")
+    batches = batched_subsets([], total=3, strategy="random", k_min=2, k_max=2)
     assert batches == []
 
 
@@ -116,7 +116,7 @@ def test_batched_subsets_strategies(strategy: str, expected_tool: str | None) ->
         _create_tool("tool3", 3),
     ]
 
-    batches = batched_subsets(tools, batch_size=2, total=3, strategy=strategy, seed=42)
+    batches = batched_subsets(tools, total=3, strategy=strategy, seed=42, k_min=2, k_max=2)
 
     assert len(batches) == 3
     for batch in batches:

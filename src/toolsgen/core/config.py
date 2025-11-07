@@ -17,7 +17,8 @@ class GenerationConfig:
         train_split: Fraction of records for training split (0.0-1.0). Default 1.0 (no split).
         language: Language name for user requests (e.g., "english", "turkish", "spanish"). Default "english".
         max_attempts: Maximum retry attempts per sample. Default 3.
-        batch_size: Number of tools per sample. Default 2.
+        k_min: Minimum number of tools per sample. Default 1.
+        k_max: Maximum number of tools per sample. Default None (uses all available tools).
     """
 
     num_samples: int = 10
@@ -26,7 +27,8 @@ class GenerationConfig:
     train_split: float = 1.0
     language: str = "english"
     max_attempts: int = 3
-    batch_size: int = 2
+    k_min: int = 1
+    k_max: Optional[int] = None
 
 
 @dataclass
