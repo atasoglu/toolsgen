@@ -9,33 +9,30 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from toolsgen.core.config import GenerationConfig, ModelConfig, RoleBasedModelConfig
-from toolsgen.core.generator import _generate_sample, generate_dataset
+from toolsgen.core.generator import generate_dataset
+from toolsgen.core.record_builder import _build_record
 from toolsgen.schema import AssistantToolCall, ToolFunction, ToolSpec
 
 
-@patch("toolsgen.core.generator.judge_tool_calls")
-@patch("toolsgen.core.generator.generate_tool_calls")
-@patch("toolsgen.core.generator.generate_problem")
+@patch("toolsgen.core.record_builder.judge_tool_calls")
+@patch("toolsgen.core.record_builder.generate_tool_calls")
+@patch("toolsgen.core.record_builder.generate_problem")
 def test_generate_sample_success(
     mock_problem: MagicMock, mock_tool_calls: MagicMock, mock_judge: MagicMock
 ) -> None:
     """Test successful sample generation."""
-    # Mock problem generation
     mock_problem.return_value = "Send an email to user@example.com"
 
-    # Mock tool call generation
     mock_tool_call = AssistantToolCall(
         id="call_1",
         function={"name": "send_email", "arguments": '{"to": "user@example.com"}'},
     )
     mock_tool_calls.return_value = [mock_tool_call]
 
-    # Mock judge
     mock_judge_result = MagicMock()
     mock_judge_result.to_dict.return_value = {"score": 0.9, "verdict": "accept"}
     mock_judge.return_value = mock_judge_result
 
-    # Create mock clients
     problem_client = MagicMock()
     caller_client = MagicMock()
     judge_client = MagicMock()
@@ -46,7 +43,7 @@ def test_generate_sample_success(
 
     role_config = RoleBasedModelConfig.from_single_config(ModelConfig(model="gpt-4"))
 
-    record = _generate_sample(
+    record = _build_record(
         problem_client,
         caller_client,
         judge_client,
@@ -65,7 +62,7 @@ def test_generate_sample_success(
     assert record.judge["score"] == 0.9
 
 
-@patch("toolsgen.core.generator.generate_problem")
+@patch("toolsgen.core.record_builder.generate_problem")
 def test_generate_sample_problem_fails(mock_problem: MagicMock) -> None:
     """Test sample generation when problem generation fails."""
     mock_problem.return_value = None
@@ -77,15 +74,21 @@ def test_generate_sample_problem_fails(mock_problem: MagicMock) -> None:
     tools = [ToolSpec(function=ToolFunction(name="test"))]
     role_config = RoleBasedModelConfig.from_single_config(ModelConfig(model="gpt-4"))
 
-    record = _generate_sample(
-        problem_client, caller_client, judge_client, "rec_001", tools, role_config
+    record = _build_record(
+        problem_client,
+        caller_client,
+        judge_client,
+        "rec_001",
+        tools,
+        role_config,
+        "english",
     )
 
     assert record is None
 
 
-@patch("toolsgen.core.generator.generate_tool_calls")
-@patch("toolsgen.core.generator.generate_problem")
+@patch("toolsgen.core.record_builder.generate_tool_calls")
+@patch("toolsgen.core.record_builder.generate_problem")
 def test_generate_sample_tool_calls_fail(
     mock_problem: MagicMock, mock_tool_calls: MagicMock
 ) -> None:
@@ -100,16 +103,22 @@ def test_generate_sample_tool_calls_fail(
     tools = [ToolSpec(function=ToolFunction(name="test"))]
     role_config = RoleBasedModelConfig.from_single_config(ModelConfig(model="gpt-4"))
 
-    record = _generate_sample(
-        problem_client, caller_client, judge_client, "rec_001", tools, role_config
+    record = _build_record(
+        problem_client,
+        caller_client,
+        judge_client,
+        "rec_001",
+        tools,
+        role_config,
+        "english",
     )
 
     assert record is None
 
 
-@patch("toolsgen.core.generator.judge_tool_calls")
-@patch("toolsgen.core.generator.generate_tool_calls")
-@patch("toolsgen.core.generator.generate_problem")
+@patch("toolsgen.core.record_builder.judge_tool_calls")
+@patch("toolsgen.core.record_builder.generate_tool_calls")
+@patch("toolsgen.core.record_builder.generate_problem")
 def test_generate_sample_judge_fails(
     mock_problem: MagicMock, mock_tool_calls: MagicMock, mock_judge: MagicMock
 ) -> None:
@@ -128,17 +137,22 @@ def test_generate_sample_judge_fails(
     tools = [ToolSpec(function=ToolFunction(name="test"))]
     role_config = RoleBasedModelConfig.from_single_config(ModelConfig(model="gpt-4"))
 
-    record = _generate_sample(
-        problem_client, caller_client, judge_client, "rec_001", tools, role_config
+    record = _build_record(
+        problem_client,
+        caller_client,
+        judge_client,
+        "rec_001",
+        tools,
+        role_config,
+        "english",
     )
 
-    # Should still return record even if judge fails
     assert record is not None
     assert record.id == "rec_001"
 
 
-@patch("toolsgen.core.generator._generate_sample")
-@patch("toolsgen.core.generator.create_openai_client")
+@patch("toolsgen.core.sequential.RecordBuilder.generate_record")
+@patch("toolsgen.core.client.create_openai_client")
 def test_generate_dataset_basic(
     mock_create_client: MagicMock,
     mock_generate_sample: MagicMock,
@@ -148,7 +162,6 @@ def test_generate_dataset_basic(
     """Test basic dataset generation."""
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
 
-    # Create tools file
     tools_path = tmp_path / "tools.json"
     tools_data = [
         {
@@ -162,11 +175,9 @@ def test_generate_dataset_basic(
     ]
     tools_path.write_text(json.dumps(tools_data), encoding="utf-8")
 
-    # Mock client creation
     mock_client = MagicMock()
     mock_create_client.return_value = mock_client
 
-    # Mock sample generation
     mock_record = MagicMock()
     mock_record.id = "rec_000000"
     mock_record.model_dump.return_value = {"id": "rec_000000"}
@@ -180,19 +191,17 @@ def test_generate_dataset_basic(
         output_dir, gen_config, model_config, tools_path=tools_path
     )
 
-    # Verify manifest
     assert manifest["num_requested"] == 3
     assert manifest["num_generated"] == 3
     assert manifest["strategy"] == "random"
     assert manifest["seed"] == 42
 
-    # Verify files created
     assert (output_dir / "manifest.json").exists()
     assert (output_dir / "train.jsonl").exists()
 
 
-@patch("toolsgen.core.generator._generate_sample")
-@patch("toolsgen.core.generator.create_openai_client")
+@patch("toolsgen.core.sequential.RecordBuilder.generate_record")
+@patch("toolsgen.core.client.create_openai_client")
 def test_generate_dataset_with_splits(
     mock_create_client: MagicMock,
     mock_generate_sample: MagicMock,
@@ -210,7 +219,6 @@ def test_generate_dataset_with_splits(
     mock_client = MagicMock()
     mock_create_client.return_value = mock_client
 
-    # Generate 10 records
     def create_mock_record(call_count: list[int] = [0]) -> MagicMock:
         record = MagicMock()
         record.id = f"rec_{call_count[0]:06d}"
@@ -239,13 +247,12 @@ def test_generate_dataset_with_splits(
     assert manifest["splits"]["train"] == 8
     assert manifest["splits"]["val"] == 2
 
-    # Verify split files
     assert (output_dir / "train.jsonl").exists()
     assert (output_dir / "val.jsonl").exists()
 
 
-@patch("toolsgen.core.generator._generate_sample")
-@patch("toolsgen.core.generator.create_openai_client")
+@patch("toolsgen.core.sequential.RecordBuilder.generate_record")
+@patch("toolsgen.core.client.create_openai_client")
 def test_generate_dataset_with_failures(
     mock_create_client: MagicMock,
     mock_generate_sample: MagicMock,
@@ -263,14 +270,13 @@ def test_generate_dataset_with_failures(
     mock_client = MagicMock()
     mock_create_client.return_value = mock_client
 
-    # Make first attempt fail, second succeed
     call_count = [0]
 
     def mock_sample_gen(*args: object, **kwargs: object) -> MagicMock | None:
         call_count[0] += 1
-        if call_count[0] % 2 == 1:  # Odd calls fail
+        if call_count[0] % 2 == 1:
             return None
-        else:  # Even calls succeed
+        else:
             record = MagicMock()
             record.id = f"rec_{(call_count[0] // 2) - 1:06d}"
             record.model_dump.return_value = {"id": record.id}
@@ -288,10 +294,10 @@ def test_generate_dataset_with_failures(
 
     assert manifest["num_requested"] == 3
     assert manifest["num_generated"] == 3
-    assert manifest["num_failed"] >= 0  # Some attempts failed
+    assert manifest["num_failed"] >= 0
 
 
-@patch("toolsgen.core.generator.create_openai_client")
+@patch("toolsgen.core.client.create_openai_client")
 def test_generate_dataset_role_based_config(
     mock_create_client: MagicMock, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -315,8 +321,7 @@ def test_generate_dataset_role_based_config(
     gen_config = GenerationConfig(num_samples=1)
     output_dir = tmp_path / "output"
 
-    # This will fail during generation but we just want to test config handling
-    with patch("toolsgen.core.generator._generate_sample") as mock_gen:
+    with patch("toolsgen.core.sequential.RecordBuilder.generate_record") as mock_gen:
         mock_record = MagicMock()
         mock_record.id = "rec_000000"
         mock_record.model_dump.return_value = {"id": "rec_000000"}
@@ -326,14 +331,13 @@ def test_generate_dataset_role_based_config(
             output_dir, gen_config, role_config, tools_path=tools_path
         )
 
-        # Verify role-based models in manifest
         assert manifest["models"]["problem_generator"] == "gpt-4"
         assert manifest["models"]["tool_caller"] == "gpt-4o"
         assert manifest["models"]["judge"] == "gpt-4o-mini"
 
 
-@patch("toolsgen.core.generator._generate_sample")
-@patch("toolsgen.core.generator.create_openai_client")
+@patch("toolsgen.core.sequential.RecordBuilder.generate_record")
+@patch("toolsgen.core.client.create_openai_client")
 def test_generate_dataset_param_aware_strategy(
     mock_create_client: MagicMock,
     mock_generate_sample: MagicMock,
@@ -388,8 +392,8 @@ def test_generate_dataset_param_aware_strategy(
     assert manifest["num_generated"] == 2
 
 
-@patch("toolsgen.core.generator._generate_sample")
-@patch("toolsgen.core.generator.create_openai_client")
+@patch("toolsgen.core.sequential.RecordBuilder.generate_record")
+@patch("toolsgen.core.client.create_openai_client")
 def test_generate_dataset_with_tools_list(
     mock_create_client: MagicMock,
     mock_generate_sample: MagicMock,
@@ -399,7 +403,6 @@ def test_generate_dataset_with_tools_list(
     """Test dataset generation with direct tools list instead of path."""
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
 
-    # Create tools list directly
     tools = [
         ToolSpec(
             function=ToolFunction(
@@ -422,7 +425,6 @@ def test_generate_dataset_with_tools_list(
     model_config = ModelConfig(model="gpt-4")
     output_dir = tmp_path / "output"
 
-    # Call with tools list instead of tools_path
     manifest = generate_dataset(output_dir, gen_config, model_config, tools=tools)
 
     assert manifest["num_requested"] == 2
