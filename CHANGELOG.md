@@ -8,6 +8,10 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 
 Nothing yet.
 
+## [0.2.1] - 2025-01-09
+### Fixed
+- Fixed integration tests to work with refactored module structure
+
 ## [0.2.0] - 2025-01-09
 ### Added
 - Parallel generation support with multiprocessing via `--workers` and `--worker-batch-size` CLI flags
