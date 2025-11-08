@@ -8,6 +8,14 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 
 Nothing yet.
 
+## [0.1.3] - 2025-11-08
+### Added
+- Batching controls (`batch_size`, `shuffle_tools`) in `GenerationConfig`, CLI flags, and docs to opt into chunked sampling.
+- Deterministic chunk-based sampling path that reuses batches in a wrap-around manner when generating many subsets.
+
+### Changed
+- CLI now forwards batching parameters so dataset generation can reuse the refactored sampling logic end-to-end.
+
 ## [0.1.2] - 2025-11-08
 ### Fixed
 - Restored `toolsgen version` output by sourcing `__version__` from package metadata when running the CLI
