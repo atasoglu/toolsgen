@@ -194,7 +194,6 @@ pytest --cov=src
 # Run code quality checks
 ruff check src tests --fix
 ruff format src tests
-mypy src
 ```
 
 ## Architecture
