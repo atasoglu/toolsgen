@@ -21,6 +21,8 @@ class GenerationConfig:
         k_max: Maximum number of tools per sample. Default None (uses all available tools).
         batch_size: Optional chunk size for tool batching. Default None (single batch).
         shuffle_tools: Whether to shuffle tools before batching. Default False.
+        num_workers: Number of concurrent worker processes. Default 1 (sequential).
+        worker_batch_size: Samples processed per worker task submission. Default 1.
     """
 
     num_samples: int = 10
@@ -33,6 +35,8 @@ class GenerationConfig:
     k_max: Optional[int] = None
     batch_size: Optional[int] = None
     shuffle_tools: bool = False
+    num_workers: int = 1
+    worker_batch_size: int = 1
 
 
 @dataclass

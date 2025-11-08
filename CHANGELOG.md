@@ -8,6 +8,15 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 
 Nothing yet.
 
+## [0.2.0] - 2025-01-09
+### Added
+- Parallel generation support with multiprocessing via `--workers` and `--worker-batch-size` CLI flags
+- `num_workers` and `worker_batch_size` configuration options in `GenerationConfig`
+- Parallel generation example in `examples/parallel/`
+
+### Fixed
+- Fixed tool subset diversity preservation in parallel mode by sorting records by original sample index before assigning final IDs
+
 ## [0.1.4] - 2025-11-09
 ### Changed
 - Made `max_tokens` optional across all chat completion helpers and dataset flows so callers can rely on model defaults unless a limit is explicitly set.
