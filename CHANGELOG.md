@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
 ## [Unreleased]
+
+Nothing yet.
+
+## [0.1.0] - 2025-11-08
 ### Added
 - Project skeleton with package, CLI, tests, and basic schemas
 - Core dataset generation functionality
