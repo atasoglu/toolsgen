@@ -8,6 +8,10 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 
 Nothing yet.
 
+## [0.1.1] - 2025-11-08
+### Added
+- Official support declarations for Python 3.12, 3.13, and 3.14 in project metadata
+
 ## [0.1.0] - 2025-11-08
 ### Added
 - Project skeleton with package, CLI, tests, and basic schemas
