@@ -4,6 +4,8 @@ This package provides a modular pipeline to synthesize tool-calling
 datasets from JSON tool definitions using an LLM-as-a-judge approach.
 """
 
+from importlib import metadata
+
 from .core import (
     GenerationConfig,
     ModelConfig,
@@ -37,7 +39,13 @@ from .schema import (
     ToolSpec,
 )
 
+try:
+    __version__ = metadata.version("toolsgen")
+except metadata.PackageNotFoundError:  # pragma: no cover - fallback for dev installs
+    __version__ = "0.0.0"
+
 __all__ = [
+    "__version__",
     "__version__",
     # Configuration
     "GenerationConfig",
