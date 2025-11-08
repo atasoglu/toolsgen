@@ -85,6 +85,17 @@ def create_parser() -> argparse.ArgumentParser:
         default=1.0,
         help="Fraction of records for training split 0.0-1.0 (default: 1.0, no split)",
     )
+    gen_parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=None,
+        help="Optional number of tools per batch when sampling (default: all tools)",
+    )
+    gen_parser.add_argument(
+        "--shuffle-tools",
+        action="store_true",
+        help="Shuffle tool order before batching (default: disabled)",
+    )
 
     # Model config
     gen_parser.add_argument(
@@ -184,6 +195,8 @@ def cmd_generate(args: argparse.Namespace) -> None:
         train_split=args.train_split,
         language=args.language,
         max_attempts=args.max_attempts,
+        batch_size=args.batch_size,
+        shuffle_tools=args.shuffle_tools,
     )
 
     # Create model config

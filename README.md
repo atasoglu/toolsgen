@@ -85,6 +85,8 @@ gen_config = GenerationConfig(
     strategy="random",
     seed=42,
     train_split=0.9,  # 90% train, 10% validation
+    batch_size=10,  # optional: iterate tools in batches
+    shuffle_tools=True,  # optional: reshuffle tools between batches
 )
 
 model_config = ModelConfig(

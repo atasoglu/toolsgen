@@ -154,6 +154,8 @@ def generate_dataset(
         seed=gen_config.seed,
         k_min=gen_config.k_min,
         k_max=gen_config.k_max,
+        batch_size=gen_config.batch_size,
+        shuffle=gen_config.shuffle_tools,
     )
 
     # Generate records

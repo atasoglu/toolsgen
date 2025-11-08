@@ -19,6 +19,8 @@ class GenerationConfig:
         max_attempts: Maximum retry attempts per sample. Default 3.
         k_min: Minimum number of tools per sample. Default 1.
         k_max: Maximum number of tools per sample. Default None (uses all available tools).
+        batch_size: Optional chunk size for tool batching. Default None (single batch).
+        shuffle_tools: Whether to shuffle tools before batching. Default False.
     """
 
     num_samples: int = 10
@@ -29,6 +31,8 @@ class GenerationConfig:
     max_attempts: int = 3
     k_min: int = 1
     k_max: Optional[int] = None
+    batch_size: Optional[int] = None
+    shuffle_tools: bool = False
 
 
 @dataclass

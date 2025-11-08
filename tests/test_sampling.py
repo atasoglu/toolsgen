@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import random
+
 import pytest
 
 from toolsgen.schema import ToolFunction, ToolSpec
@@ -127,6 +129,53 @@ def test_batched_subsets_strategies(strategy: str, expected_tool: str | None) ->
         assert len(batch) == 2
         if expected_tool:
             assert any(t.function.name == expected_tool for t in batch)
+
+
+def test_batched_subsets_with_chunking_and_wraparound() -> None:
+    """Ensure batching respects chunk sizes and wraps deterministically."""
+    tools = [
+        _create_tool(f"tool{i}", i) for i in range(1, 6)
+    ]  # 5 tools -> chunks of [2,2,1]
+
+    batches = batched_subsets(
+        tools,
+        total=4,
+        strategy="random",
+        seed=7,
+        k_min=1,
+        k_max=2,
+        batch_size=2,
+        shuffle=False,
+    )
+
+    assert len(batches) == 4
+    assert {t.function.name for t in batches[0]} == {"tool1", "tool2"}
+    assert {t.function.name for t in batches[1]} == {"tool3", "tool4"}
+    assert len(batches[2]) == 1
+    assert batches[2][0].function.name == "tool5"
+    assert {t.function.name for t in batches[3]} == {"tool1", "tool2"}
+
+
+def test_batched_subsets_shuffle_applies_before_chunking() -> None:
+    """Verify shuffle uses the provided seed before chunking."""
+    tools = [_create_tool(f"tool{i}", i) for i in range(1, 5)]
+    rng = random.Random(42)
+    shuffled = tools.copy()
+    rng.shuffle(shuffled)
+    expected_names = {t.function.name for t in shuffled[:2]}
+
+    batches = batched_subsets(
+        tools,
+        total=2,
+        strategy="random",
+        seed=42,
+        k_min=2,
+        k_max=2,
+        batch_size=2,
+        shuffle=True,
+    )
+
+    assert {t.function.name for t in batches[0]} == expected_names
 
 
 def test_sample_semantic_subset() -> None:

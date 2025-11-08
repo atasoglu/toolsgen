@@ -9,14 +9,24 @@ def test_generation_config_defaults() -> None:
     assert config.num_samples == 10
     assert config.strategy == "random"
     assert config.seed is None
+    assert config.batch_size is None
+    assert config.shuffle_tools is False
 
 
 def test_generation_config_custom() -> None:
     """Test GenerationConfig with custom values."""
-    config = GenerationConfig(num_samples=100, strategy="param_aware", seed=42)
+    config = GenerationConfig(
+        num_samples=100,
+        strategy="param_aware",
+        seed=42,
+        batch_size=4,
+        shuffle_tools=True,
+    )
     assert config.num_samples == 100
     assert config.strategy == "param_aware"
     assert config.seed == 42
+    assert config.batch_size == 4
+    assert config.shuffle_tools is True
 
 
 def test_model_config_required() -> None:
