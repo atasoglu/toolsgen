@@ -86,4 +86,3 @@ addopts = "-q --cov=src --cov-report=term-missing"
 testpaths = [
   "tests",
 ]
-

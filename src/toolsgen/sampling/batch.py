@@ -71,9 +71,7 @@ def batched_subsets(
 
     rng = random.Random(seed)
 
-    batches = _chunk_tools(
-        tools, batch_size=batch_size, shuffle=shuffle, rng=rng
-    )
+    batches = _chunk_tools(tools, batch_size=batch_size, shuffle=shuffle, rng=rng)
     if not batches:
         return []
 
