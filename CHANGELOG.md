@@ -8,6 +8,10 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 
 Nothing yet.
 
+## [0.1.2] - 2025-11-08
+### Fixed
+- Restored `toolsgen version` output by sourcing `__version__` from package metadata when running the CLI
+
 ## [0.1.1] - 2025-11-08
 ### Added
 - Official support declarations for Python 3.12, 3.13, and 3.14 in project metadata
