@@ -103,6 +103,7 @@ def test_judge_tool_calls_success(mock_openai_class: MagicMock) -> None:
     call_kwargs = mock_client.chat.completions.create.call_args.kwargs
     assert call_kwargs["model"] == "gpt-4"
     assert call_kwargs["temperature"] == 0.3
+    assert call_kwargs["max_tokens"] is None
     assert call_kwargs["response_format"]["type"] == "json_schema"
 
 
@@ -280,8 +281,8 @@ def test_judge_tool_calls_multiple_calls(mock_openai_class: MagicMock) -> None:
 
 
 @patch("toolsgen.judge.OpenAI")
-def test_judge_tool_calls_max_tokens(mock_openai_class: MagicMock) -> None:
-    """Test that max_tokens is set correctly."""
+def test_judge_tool_calls_custom_max_tokens(mock_openai_class: MagicMock) -> None:
+    """Test that max_tokens parameter is forwarded when provided."""
     mock_client = MagicMock()
     mock_response = MagicMock()
     mock_response.choices[0].message.content = """
@@ -307,7 +308,8 @@ def test_judge_tool_calls_max_tokens(mock_openai_class: MagicMock) -> None:
         user_request="Test",
         tools=tools,
         tool_calls=tool_calls,
+        max_tokens=640,
     )
 
     call_kwargs = mock_client.chat.completions.create.call_args.kwargs
-    assert call_kwargs["max_tokens"] == 500
+    assert call_kwargs["max_tokens"] == 640

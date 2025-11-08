@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import List
+from typing import List, Optional
 
 from openai import OpenAI
 
@@ -16,7 +16,7 @@ def generate_tool_calls(
     user_request: str,
     tools: List[ToolSpec],
     temperature: float = 0.3,
-    max_tokens: int = 500,
+    max_tokens: Optional[int] = None,
 ) -> List[AssistantToolCall]:
     """Generate tool calls for a given user request.
 
@@ -26,7 +26,7 @@ def generate_tool_calls(
         user_request: The user's request to fulfill.
         tools: Available tool specifications.
         temperature: Sampling temperature (lower for more consistent calls).
-        max_tokens: Maximum tokens to generate.
+        max_tokens: Optional maximum tokens to generate.
 
     Returns:
         List of generated tool calls. Empty list if no valid calls generated.

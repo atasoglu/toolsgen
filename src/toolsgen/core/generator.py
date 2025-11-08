@@ -49,7 +49,7 @@ def _generate_sample(
         tools=tools,
         language=language,
         temperature=role_config.problem_generator.temperature,
-        max_tokens=200,
+        max_tokens=role_config.problem_generator.max_tokens,
     )
 
     if not user_request:
@@ -62,7 +62,7 @@ def _generate_sample(
         user_request=user_request,
         tools=tools,
         temperature=role_config.tool_caller.temperature,
-        max_tokens=500,
+        max_tokens=role_config.tool_caller.max_tokens,
     )
 
     if not tool_calls:
@@ -81,6 +81,7 @@ def _generate_sample(
             tools=tools,
             tool_calls=tool_calls,
             temperature=role_config.judge.temperature,
+            max_tokens=role_config.judge.max_tokens,
         )
         judge_dict.update(judge_result.to_dict())
     except Exception:

@@ -8,6 +8,10 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 
 Nothing yet.
 
+## [0.1.4] - 2025-11-09
+### Changed
+- Made `max_tokens` optional across all chat completion helpers and dataset flows so callers can rely on model defaults unless a limit is explicitly set.
+
 ## [0.1.3] - 2025-11-08
 ### Added
 - Batching controls (`batch_size`, `shuffle_tools`) in `GenerationConfig`, CLI flags, and docs to opt into chunked sampling.

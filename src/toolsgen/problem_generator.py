@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import List
+from typing import List, Optional
 
 from openai import OpenAI
 
@@ -19,7 +19,7 @@ def generate_problem(
     tools: List[ToolSpec],
     language: str = "english",
     temperature: float = 0.7,
-    max_tokens: int = 200,
+    max_tokens: Optional[int] = None,
 ) -> str | None:
     """Generate a natural language user request that requires tool usage.
 
@@ -29,7 +29,7 @@ def generate_problem(
         tools: Available tools for the request.
         language: Language name for the request (e.g., "english", "turkish").
         temperature: Sampling temperature (higher for more creative requests).
-        max_tokens: Maximum tokens to generate.
+        max_tokens: Optional maximum tokens to generate.
 
     Returns:
         Generated user request string, or None if generation fails.

@@ -48,7 +48,6 @@ def test_generate_tool_calls_success(mock_openai_class: MagicMock) -> None:
         user_request="Send an email to user@example.com",
         tools=tools,
         temperature=0.3,
-        max_tokens=500,
     )
 
     assert len(result) == 1
@@ -62,7 +61,7 @@ def test_generate_tool_calls_success(mock_openai_class: MagicMock) -> None:
     call_kwargs = mock_client.chat.completions.create.call_args.kwargs
     assert call_kwargs["model"] == "gpt-4"
     assert call_kwargs["temperature"] == 0.3
-    assert call_kwargs["max_tokens"] == 500
+    assert call_kwargs["max_tokens"] is None
     assert call_kwargs["tool_choice"] == "auto"
 
 
@@ -223,3 +222,25 @@ def test_generate_tool_calls_system_prompt(mock_openai_class: MagicMock) -> None
     assert messages[0]["role"] == "system"
     assert messages[1]["role"] == "user"
     assert messages[1]["content"] == user_request
+
+
+@patch("toolsgen.tool_caller.OpenAI")
+def test_generate_tool_calls_custom_max_tokens(mock_openai_class: MagicMock) -> None:
+    """Test that max_tokens parameter is forwarded when provided."""
+    mock_client = MagicMock()
+    mock_response = MagicMock()
+    mock_response.choices[0].message.tool_calls = []
+    mock_client.chat.completions.create.return_value = mock_response
+
+    tools = [ToolSpec(function=ToolFunction(name="test"))]
+
+    generate_tool_calls(
+        client=mock_client,
+        model="gpt-4",
+        user_request="Test",
+        tools=tools,
+        max_tokens=1024,
+    )
+
+    call_kwargs = mock_client.chat.completions.create.call_args.kwargs
+    assert call_kwargs["max_tokens"] == 1024

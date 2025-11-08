@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Literal
+from typing import Any, Dict, List, Literal, Optional
 
 from openai import OpenAI
 from pydantic import BaseModel, Field
@@ -68,6 +68,7 @@ def judge_tool_calls(
     tools: List[ToolSpec],
     tool_calls: List[AssistantToolCall],
     temperature: float = 0.3,
+    max_tokens: Optional[int] = None,
 ) -> JudgeResponse:
     """Evaluate tool calls using LLM-as-a-judge.
 
@@ -78,6 +79,7 @@ def judge_tool_calls(
         tools: Available tool specifications.
         tool_calls: Generated tool calls to evaluate.
         temperature: Sampling temperature (lower for more deterministic).
+        max_tokens: Optional maximum tokens to generate.
 
     Returns:
         JudgeResponse with scores and verdict.
@@ -103,7 +105,7 @@ def judge_tool_calls(
         model=model,
         messages=messages,
         temperature=temperature,
-        max_tokens=500,
+        max_tokens=max_tokens,
         response_format={
             "type": "json_schema",
             "json_schema": {
