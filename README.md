@@ -1,5 +1,11 @@
 # 🛠️ ToolsGen
 
+[![PyPI version](https://img.shields.io/pypi/v/toolsgen)](https://pypi.org/project/toolsgen/)
+[![image](https://img.shields.io/pypi/pyversions/toolsgen.svg)]()
+[![CI](https://github.com/atasoglu/toolsgen/actions/workflows/test.yml/badge.svg)](https://github.com/atasoglu/toolsgen/actions/workflows/test.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
+
 A modular Python library for synthesizing tool-calling datasets from JSON tool definitions using an LLM-as-a-judge pipeline. Designed for OpenAI-compatible APIs.
 
 > **⚠️ Development Status**: This project is under active development. The API is not yet stable and may undergo significant changes. Breaking changes may occur between versions.
