@@ -73,5 +73,3 @@ __all__ = [
     "ToolFunction",
     "ToolSpec",
 ]
-
-__version__ = "0.1.0"
