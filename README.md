@@ -23,6 +23,7 @@ ToolsGen automates the creation of tool-calling datasets for training and evalua
 - **Hugging Face Ready**: JSONL output format compatible with Hugging Face datasets
 - **Configurable Quality Control**: Adjustable scoring thresholds and retry mechanisms
 - **Train/Val Splitting**: Built-in dataset splitting for model training workflows
+- **Parallel Generation**: Multiprocessing pipeline to accelerate dataset creation on multi-core hosts
 
 ## Requirements
 
@@ -62,9 +63,19 @@ toolsgen generate \
   --strategy param_aware \
   --seed 42 \
   --train-split 0.9 \
+  --workers 4 \
+  --worker-batch-size 8 \
   --problem-model gpt-4o-mini --problem-temp 0.9 \
   --caller-model gpt-4o --caller-temp 0.3 \
   --judge-model gpt-4o --judge-temp 0.0
+
+# Parallel generation with 6 workers processing four samples per task
+toolsgen generate \
+  --tools tools.json \
+  --out output_dir \
+  --num 500 \
+  --workers 6 \
+  --worker-batch-size 4
 ```
 
 ### Python API Usage
@@ -87,6 +98,8 @@ gen_config = GenerationConfig(
     train_split=0.9,  # 90% train, 10% validation
     batch_size=10,  # optional: iterate tools in batches
     shuffle_tools=True,  # optional: reshuffle tools between batches
+    num_workers=4,  # enable multiprocessing
+    worker_batch_size=2,  # samples per worker task
 )
 
 model_config = ModelConfig(
@@ -213,7 +226,7 @@ For detailed information about the system architecture, pipeline, and core compo
 ### Planned Features
 - [ ] Multi-turn conversation support
 - [ ] Custom prompt template system
-- [ ] Parallel generation with multiprocessing
+- [x] Parallel generation with multiprocessing
 - [ ] Additional sampling strategies (coverage-based, difficulty-based)
 - [ ] Integration with Hugging Face Hub for direct dataset uploads
 - [ ] Support for more LLM providers (Anthropic, Cohere, etc.)

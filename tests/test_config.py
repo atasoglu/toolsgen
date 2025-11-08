@@ -11,6 +11,8 @@ def test_generation_config_defaults() -> None:
     assert config.seed is None
     assert config.batch_size is None
     assert config.shuffle_tools is False
+    assert config.num_workers == 1
+    assert config.worker_batch_size == 1
 
 
 def test_generation_config_custom() -> None:
@@ -21,12 +23,16 @@ def test_generation_config_custom() -> None:
         seed=42,
         batch_size=4,
         shuffle_tools=True,
+        num_workers=4,
+        worker_batch_size=3,
     )
     assert config.num_samples == 100
     assert config.strategy == "param_aware"
     assert config.seed == 42
     assert config.batch_size == 4
     assert config.shuffle_tools is True
+    assert config.num_workers == 4
+    assert config.worker_batch_size == 3
 
 
 def test_model_config_required() -> None:

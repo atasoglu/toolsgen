@@ -13,7 +13,7 @@ toolsgen = ["prompts/*.txt"]
 
 [project]
 name = "toolsgen"
-version = "0.1.4"
+version = "0.2.0"
 description = "Generate tool-calling datasets from OpenAI-compatible tool specs"
 readme = "README.md"
 requires-python = ">=3.9"

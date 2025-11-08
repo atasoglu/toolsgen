@@ -96,6 +96,18 @@ def create_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Shuffle tool order before batching (default: disabled)",
     )
+    gen_parser.add_argument(
+        "--workers",
+        type=int,
+        default=1,
+        help="Number of worker processes for generation (default: 1)",
+    )
+    gen_parser.add_argument(
+        "--worker-batch-size",
+        type=int,
+        default=1,
+        help="Number of samples each worker processes per task (default: 1)",
+    )
 
     # Model config
     gen_parser.add_argument(
@@ -187,6 +199,14 @@ def cmd_generate(args: argparse.Namespace) -> None:
         print("Error: --temperature must be between 0.0 and 2.0", file=sys.stderr)
         sys.exit(1)
 
+    if args.workers < 1:
+        print("Error: --workers must be at least 1", file=sys.stderr)
+        sys.exit(1)
+
+    if args.worker_batch_size < 1:
+        print("Error: --worker-batch-size must be at least 1", file=sys.stderr)
+        sys.exit(1)
+
     # Create generation config
     gen_config = GenerationConfig(
         num_samples=args.num,
@@ -197,6 +217,8 @@ def cmd_generate(args: argparse.Namespace) -> None:
         max_attempts=args.max_attempts,
         batch_size=args.batch_size,
         shuffle_tools=args.shuffle_tools,
+        num_workers=args.workers,
+        worker_batch_size=args.worker_batch_size,
     )
 
     # Create model config

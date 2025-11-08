@@ -27,6 +27,8 @@ def test_create_parser() -> None:
     assert args.tools == Path("tools.json")
     assert args.out == Path("output")
     assert args.num == 10  # default
+    assert args.workers == 1
+    assert args.worker_batch_size == 1
 
 
 def test_cmd_version(capsys: pytest.CaptureFixture) -> None:
@@ -65,6 +67,12 @@ def test_cmd_generate_missing_tools_file(
         ("--num", "0", "--num must be at least 1"),
         ("--train-split", "1.5", "--train-split must be between 0.0 and 1.0"),
         ("--temperature", "3.0", "--temperature must be between 0.0 and 2.0"),
+        ("--workers", "0", "--workers must be at least 1"),
+        (
+            "--worker-batch-size",
+            "0",
+            "--worker-batch-size must be at least 1",
+        ),
     ],
 )
 def test_cmd_generate_invalid_params(
@@ -150,6 +158,9 @@ def test_cmd_generate_success(
 
     # Verify generate_dataset was called
     assert mock_generate.called
+    gen_config = mock_generate.call_args[0][1]
+    assert gen_config.num_workers == 1
+    assert gen_config.worker_batch_size == 1
     captured = capsys.readouterr()
     assert "Generating 5 samples" in captured.out
     assert "Generated 5 records" in captured.out
@@ -195,6 +206,10 @@ def test_cmd_generate_with_role_models(
             "0.1",
             "--judge-temp",
             "0.3",
+            "--workers",
+            "2",
+            "--worker-batch-size",
+            "4",
         ]
     )
 
@@ -207,6 +222,9 @@ def test_cmd_generate_with_role_models(
     assert model_config.problem_generator.model == "gpt-4"
     assert model_config.tool_caller.model == "gpt-4o"
     assert model_config.judge.model == "gpt-4o-mini"
+    gen_config = call_args[0][1]
+    assert gen_config.num_workers == 2
+    assert gen_config.worker_batch_size == 4
 
 
 @pytest.mark.parametrize(
