@@ -8,6 +8,11 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 
 Nothing yet.
 
+## [0.2.2] - 2025-01-09
+### Changed
+- Records are now written to JSONL file immediately as they complete in parallel mode, rather than waiting for all generation to finish
+- Improved memory efficiency by removing records from buffer after writing to disk
+
 ## [0.2.1] - 2025-01-09
 ### Fixed
 - Fixed integration tests to work with refactored module structure
