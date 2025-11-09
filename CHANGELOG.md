@@ -8,6 +8,21 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 
 Nothing yet.
 
+## [0.3.0] - 2025-01-10
+### Added
+- Hugging Face dataset integration utilities in `examples/nano_tool_calling_v1/`
+  - `dataset_to_tools()` function to load tools from Hugging Face datasets
+  - `validate_json_schema()` for OpenAI tool schema validation with recursive array type checking
+  - `push_to_hf.py` script for uploading generated datasets to Hugging Face Hub
+- Complete example workflow for Nano Tool Calling v1 dataset generation
+  - Configuration, generation, validation, and publishing pipeline
+  - Analysis utilities for function inspection
+  - Comprehensive README with dataset card format
+
+### Changed
+- Enhanced batch sampling progress bar display for better user feedback
+- Improved parallel processing record ordering and ID assignment
+
 ## [0.2.2] - 2025-01-09
 ### Changed
 - Records are now written to JSONL file immediately as they complete in parallel mode, rather than waiting for all generation to finish
