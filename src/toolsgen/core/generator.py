@@ -58,6 +58,10 @@ def _split_records(
             "val": shuffled[split_idx:],
         }
 
+        temp_train = output_dir / "train.jsonl"
+        if temp_train.exists():
+            temp_train.unlink()
+
         for split_name, split_records in splits.items():
             if split_records:
                 split_path = output_dir / f"{split_name}.jsonl"
