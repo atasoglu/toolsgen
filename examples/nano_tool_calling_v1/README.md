@@ -1,4 +1,4 @@
-# Simple Tool Calling v1
+# Nano Tool Calling v1
 
 Generates 10K tool-calling samples from Hugging Face dataset with parallel processing and schema validation.
 
@@ -15,7 +15,7 @@ python example.py
 - **Dataset**: `argilla-warehouse/python-seed-tools`
 - **Samples**: 10,000 (80% train / 20% val)
 - **Parallel**: 8 workers × 16 batch size
-- **Models**: GPT-5-mini (problem/caller), GPT-5 (judge)
+- **Models**: GPT-4.1-nano
 
 ## Files
 

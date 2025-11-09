@@ -1,6 +1,8 @@
 import random
 from typing import Callable, List, Optional, Sequence
 
+from tqdm import tqdm
+
 from .param_aware import sample_param_aware_subset
 from .random import sample_random_subset
 from .semantic import sample_semantic_subset
@@ -84,7 +86,7 @@ def batched_subsets(
     using_chunks = batch_size is not None and batch_size > 0
 
     subsets: List[List[ToolSpec]] = []
-    for i in range(total):
+    for i in tqdm(range(total), desc="Preparing tool subsets", total=total):
         batch = batches[i % len(batches)]
         if using_chunks:
             k = len(batch)
