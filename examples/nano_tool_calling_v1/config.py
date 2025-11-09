@@ -5,17 +5,16 @@ from toolsgen import (
 )
 
 gen_config = GenerationConfig(
-    num_samples=10_000,
+    num_samples=1_000,
     strategy="random",
     seed=42,
-    train_split=0.8,
     language="english",
     max_attempts=3,
-    k_min=2,
+    k_min=1,
     k_max=4,
     shuffle_tools=True,
-    num_workers=4,
-    worker_batch_size=8,
+    num_workers=16,
+    worker_batch_size=16,
 )
 
 role_config = RoleBasedModelConfig(
@@ -28,7 +27,7 @@ role_config = RoleBasedModelConfig(
         temperature=0,
     ),
     judge=ModelConfig(
-        model="gpt-4.1-nano",
+        model="gpt-4.1-mini",
         temperature=0,
     ),
 )

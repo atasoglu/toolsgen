@@ -132,6 +132,8 @@ def generate_records_parallel(
         return [], 0
 
     results_by_index: Dict[int, Record] = {}
+    failed_indices: set[int] = set()
+    written_records: List[Record] = []
     failed = 0
     next_id_to_write = 0
 
@@ -157,14 +159,8 @@ def generate_records_parallel(
                     if sample_result.record:
                         record = Record.model_validate(sample_result.record)
                         results_by_index[sample_result.sample_index] = record
-
-                        while next_id_to_write in results_by_index:
-                            rec = results_by_index[next_id_to_write]
-                            rec.id = f"record_{next_id_to_write:06d}"
-                            append_record_jsonl(rec, jsonl_path)
-                            del results_by_index[next_id_to_write]
-                            next_id_to_write += 1
                     else:
+                        failed_indices.add(sample_result.sample_index)
                         tqdm.write(
                             "Warning: Failed to generate sample "
                             f"{sample_result.sample_index} after {gen_config.max_attempts} attempts"
@@ -175,7 +171,18 @@ def generate_records_parallel(
                             )
                         )
 
+                    while (
+                        next_id_to_write in results_by_index
+                        or next_id_to_write in failed_indices
+                    ):
+                        if next_id_to_write in results_by_index:
+                            rec = results_by_index[next_id_to_write]
+                            rec.id = f"record_{next_id_to_write:06d}"
+                            append_record_jsonl(rec, jsonl_path)
+                            written_records.append(rec)
+                            del results_by_index[next_id_to_write]
+                        next_id_to_write += 1
+
                     pbar.update(1)
 
-    all_records = [results_by_index[i] for i in sorted(results_by_index.keys())]
-    return all_records, failed
+    return written_records, failed
