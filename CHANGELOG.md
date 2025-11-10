@@ -8,6 +8,19 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 
 Nothing yet.
 
+## [0.5.0] - 2025-01-11
+### Added
+- Hugging Face Hub integration for direct dataset uploads
+  - `push_to_hub()` function in new `hf_hub` module to upload datasets to HF Hub
+  - Uploads JSONL files (train.jsonl, val.jsonl), manifest.json, and auto-generated README.md
+  - CLI flags: `--push-to-hub`, `--repo-id`, `--hf-token`, `--private`
+  - Support for both public and private repositories
+  - Auto-generated dataset cards with dataset statistics, model info, usage examples, and citation
+- Optional dependency: `huggingface_hub>=0.20.0` (install with `pip install toolsgen[hf]`)
+- Example in `examples/hf_hub_upload/` with dotenv configuration
+- Test suite for HF Hub functionality in `tests/test_hf_hub.py`
+- `push_to_hub` exported from main `toolsgen` package for easier imports
+
 ## [0.4.0] - 2025-01-10
 ### Added
 - Quality tagging system for generated records
