@@ -121,19 +121,19 @@ def _generate_readme(repo_id: str, manifest: Dict[str, Any]) -> str:
     else:
         splits_section = f"\n## Dataset Size\n\n{train_count} training records\n"
 
-    readme = f"""# {repo_id.split('/')[-1]}
+    readme = f"""# {repo_id.split("/")[-1]}
 
 This dataset was generated using [ToolsGen](https://github.com/atasoglu/toolsgen).
 
 ## Dataset Description
 
-- **Generated samples**: {manifest.get('num_generated', 0)}
-- **Tools count**: {manifest.get('tools_count', 0)}
-- **Sampling strategy**: {manifest.get('strategy', 'N/A')}
+- **Generated samples**: {manifest.get("num_generated", 0)}
+- **Tools count**: {manifest.get("tools_count", 0)}
+- **Sampling strategy**: {manifest.get("strategy", "N/A")}
 - **Models used**:
-  - Problem generator: {manifest.get('models', {}).get('problem_generator', 'N/A')}
-  - Tool caller: {manifest.get('models', {}).get('tool_caller', 'N/A')}
-  - Judge: {manifest.get('models', {}).get('judge', 'N/A')}
+  - Problem generator: {manifest.get("models", {}).get("problem_generator", "N/A")}
+  - Tool caller: {manifest.get("models", {}).get("tool_caller", "N/A")}
+  - Judge: {manifest.get("models", {}).get("judge", "N/A")}
 {splits_section}
 ## Usage
 
