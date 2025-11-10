@@ -54,6 +54,7 @@ def _build_record(
         "model": role_config.judge.model,
         "temperature": role_config.judge.temperature,
     }
+    quality_tags = []
     try:
         judge_result = judge_tool_calls(
             client=judge_client,
@@ -65,6 +66,7 @@ def _build_record(
             max_tokens=role_config.judge.max_tokens,
         )
         judge_dict.update(judge_result.to_dict())
+        quality_tags = judge_result.generate_quality_tags()
     except Exception:
         pass  # Continue without judge data
 
@@ -76,6 +78,7 @@ def _build_record(
         assistant_calls=tool_calls,
         problem_metadata={"generated": True, "user_request": user_request},
         judge=judge_dict,
+        quality_tags=quality_tags,
         tools_metadata={"num_tools": len(tools)},
     )
 
