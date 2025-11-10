@@ -8,6 +8,12 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 
 Nothing yet.
 
+## [0.5.1] - 2025-01-11
+### Removed
+- Removed redundant `create_structured_completion()` function from `core.client` module
+  - Function was unused in the codebase; structured outputs are implemented directly in `judge.py`
+  - Cleaned up unused imports and test cases
+
 ## [0.5.0] - 2025-01-11
 ### Added
 - Hugging Face Hub integration for direct dataset uploads
