@@ -168,6 +168,28 @@ def create_parser() -> argparse.ArgumentParser:
         help="Temperature for judging (defaults to --temperature)",
     )
 
+    # Hugging Face Hub options
+    gen_parser.add_argument(
+        "--push-to-hub",
+        action="store_true",
+        help="Push dataset to Hugging Face Hub after generation",
+    )
+    gen_parser.add_argument(
+        "--repo-id",
+        default=None,
+        help="HF Hub repository ID (e.g., 'username/dataset-name')",
+    )
+    gen_parser.add_argument(
+        "--hf-token",
+        default=None,
+        help="HF API token (defaults to HF_TOKEN env var)",
+    )
+    gen_parser.add_argument(
+        "--private",
+        action="store_true",
+        help="Create private repository on HF Hub",
+    )
+
     return parser
 
 
@@ -275,9 +297,15 @@ def cmd_generate(args: argparse.Namespace) -> None:
             max_tokens=args.max_tokens,
         )
 
+    # Validate HF Hub options
+    if args.push_to_hub and not args.repo_id:
+        print("Error: --repo-id is required when using --push-to-hub", file=sys.stderr)
+        sys.exit(1)
+
     # Generate dataset
     try:
         print(f"Generating {args.num} samples using {args.model}...")
+
         manifest = generate_dataset(
             args.out, gen_config, model_config, tools_path=args.tools
         )
@@ -296,6 +324,20 @@ def cmd_generate(args: argparse.Namespace) -> None:
             print(f"  - train.jsonl: {manifest['num_generated']} records")
 
         print(f"  - Manifest: {args.out / 'manifest.json'}")
+
+        if args.push_to_hub:
+            from .hf_hub import push_to_hub
+
+            print("\nPushing to Hugging Face Hub...")
+            hub_info = push_to_hub(
+                output_dir=args.out,
+                repo_id=args.repo_id,
+                token=args.hf_token,
+                private=args.private,
+            )
+            print("✓ Pushed to Hugging Face Hub")
+            print(f"  - Repository: {hub_info['repo_url']}")
+            print(f"  - Files uploaded: {', '.join(hub_info['files_uploaded'])}")
 
     except ValueError as e:
         print(f"Error: {e}", file=sys.stderr)

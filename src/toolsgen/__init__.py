@@ -14,6 +14,7 @@ from .core import (
     load_tool_specs,
     write_dataset_jsonl,
 )
+from .hf_hub import push_to_hub
 from .judge import JudgeResponse, judge_tool_calls
 from .problem_generator import generate_problem
 from .tool_caller import generate_tool_calls
@@ -55,6 +56,8 @@ __all__ = [
     "generate_dataset",
     "load_tool_specs",
     "write_dataset_jsonl",
+    # HF Hub
+    "push_to_hub",
     # Judge
     "JudgeResponse",
     "judge_tool_calls",

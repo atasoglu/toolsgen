@@ -76,16 +76,26 @@ toolsgen generate \
   --num 500 \
   --workers 6 \
   --worker-batch-size 4
+
+# Generate and push directly to Hugging Face Hub
+export HF_TOKEN="your-hf-token-here"
+toolsgen generate \
+  --tools tools.json \
+  --out output_dir \
+  --num 100 \
+  --push-to-hub \
+  --repo-id username/dataset-name
 ```
 
 ### Python API Usage
 
 ```python
-import os
 from pathlib import Path
+from dotenv import load_dotenv
+
 from toolsgen.core import GenerationConfig, ModelConfig, generate_dataset
 
-os.environ["OPENAI_API_KEY"] = "your-api-key-here"
+load_dotenv()  # Load from .env file
 
 # Configuration
 tools_path = Path("tools.json")
@@ -117,6 +127,50 @@ manifest = generate_dataset(output_dir, gen_config, model_config, tools_path=too
 
 print(f"Generated {manifest['num_generated']}/{manifest['num_requested']} records")
 print(f"Failed: {manifest['num_failed']} attempts")
+```
+
+### Push to Hugging Face Hub
+
+```python
+from pathlib import Path
+from dotenv import load_dotenv
+
+from toolsgen import GenerationConfig, ModelConfig, generate_dataset, push_to_hub
+
+load_dotenv()  # Load from .env file
+
+tools_path = Path("tools.json")
+output_dir = Path("output")
+
+gen_config = GenerationConfig(
+    num_samples=100,
+    strategy="random",
+    seed=42,
+    train_split=0.9,
+)
+
+model_config = ModelConfig(
+    model="gpt-4o-mini",
+    temperature=0.7,
+)
+
+# Generate dataset
+manifest = generate_dataset(
+    output_dir=output_dir,
+    gen_config=gen_config,
+    model_config=model_config,
+    tools_path=tools_path,
+)
+
+# Push to Hub
+hub_info = push_to_hub(
+    output_dir=output_dir,
+    repo_id="username/dataset-name",
+    private=False,
+)
+
+print(f"Generated: {manifest['num_generated']} records")
+print(f"Repository: {hub_info['repo_url']}")
 ```
 
 See `examples/` directory for complete working examples.
@@ -228,7 +282,7 @@ For detailed information about the system architecture, pipeline, and core compo
 - [ ] Custom prompt template system
 - [x] Parallel generation with multiprocessing
 - [ ] Additional sampling strategies (coverage-based, difficulty-based)
-- [ ] Integration with Hugging Face Hub for direct dataset uploads
+- [x] Integration with Hugging Face Hub for direct dataset uploads
 - [ ] Support for more LLM providers (Anthropic, Cohere, etc.)
 - [ ] Web UI for dataset inspection and curation
 - [ ] Advanced filtering and deduplication
