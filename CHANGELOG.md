@@ -8,6 +8,14 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 
 Nothing yet.
 
+## [0.4.0] - 2025-01-10
+### Added
+- Quality tagging system for generated records
+  - `generate_quality_tags()` method in `JudgeResponse` to automatically tag samples based on judge scores
+  - Tags include overall quality levels (high/medium/low_quality) and dimension-specific tags (excellent/poor tool selection, arguments, clarity)
+  - Configurable thresholds for quality classification
+  - `quality_tags` field automatically populated in generated records
+
 ## [0.3.0] - 2025-01-10
 ### Added
 - Hugging Face dataset integration utilities in `examples/nano_tool_calling_v1/`

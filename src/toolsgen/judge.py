@@ -60,6 +60,58 @@ class JudgeResponse(BaseModel):
             "rubric_version": "0.1.0",
         }
 
+    def generate_quality_tags(
+        self,
+        high_quality_threshold: float = 0.9,
+        medium_quality_threshold: float = 0.7,
+        excellent_dimension_pct: float = 0.875,
+        poor_dimension_pct: float = 0.5,
+    ) -> List[str]:
+        """Generate quality tags based on scores.
+
+        Args:
+            high_quality_threshold: Overall score threshold for high_quality tag (default: 0.9).
+            medium_quality_threshold: Overall score threshold for medium_quality tag (default: 0.7).
+            excellent_dimension_pct: Percentage of max score for excellent tags (default: 0.875 = 87.5%).
+            poor_dimension_pct: Percentage of max score for poor tags (default: 0.5 = 50%).
+
+        Returns:
+            List of quality tags describing the sample.
+        """
+        tags = []
+
+        # Overall quality
+        if self.score >= high_quality_threshold:
+            tags.append("high_quality")
+        elif self.score >= medium_quality_threshold:
+            tags.append("medium_quality")
+        else:
+            tags.append("low_quality")
+
+        # Dimension-specific tags (based on percentage of max possible score)
+        tool_rel_excellent = 0.4 * excellent_dimension_pct
+        tool_rel_poor = 0.4 * poor_dimension_pct
+        if self.tool_relevance >= tool_rel_excellent:
+            tags.append("excellent_tool_selection")
+        elif self.tool_relevance < tool_rel_poor:
+            tags.append("poor_tool_selection")
+
+        arg_qual_excellent = 0.4 * excellent_dimension_pct
+        arg_qual_poor = 0.4 * poor_dimension_pct
+        if self.argument_quality >= arg_qual_excellent:
+            tags.append("excellent_arguments")
+        elif self.argument_quality < arg_qual_poor:
+            tags.append("poor_arguments")
+
+        clarity_excellent = 0.2 * excellent_dimension_pct
+        clarity_poor = 0.2 * poor_dimension_pct
+        if self.clarity >= clarity_excellent:
+            tags.append("high_clarity")
+        elif self.clarity < clarity_poor:
+            tags.append("low_clarity")
+
+        return tags
+
 
 def judge_tool_calls(
     client: OpenAI,
