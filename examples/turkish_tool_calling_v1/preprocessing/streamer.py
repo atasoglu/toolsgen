@@ -4,6 +4,7 @@ from .schema import ToolFunction
 from datasets import load_dataset
 from typing import Generator, Optional
 from multiprocessing import Pool, cpu_count
+from toolsgen import ToolSpec
 
 
 def _process_sample(sample_data: tuple) -> tuple[list[dict], int]:
@@ -125,3 +126,20 @@ def save_tools_to_file(
     with open(output_file, "a", encoding="utf-8") as f:
         for tool in tools:
             f.write(json.dumps(tool, ensure_ascii=False) + "\n")
+
+
+def load_tools_from_file(
+    input_file: str,
+) -> Generator[ToolSpec, None, None]:
+    """Load tool definitions from a JSONL file.
+
+    Args:
+        input_file (str): Path to the input JSONL file.
+    Yields:
+        Generator[ToolSpec, None, None]: Generator of ToolSpec instances.
+    """
+    with open(input_file, "r", encoding="utf-8") as f:
+        for line in f:
+            tool_dict = json.loads(line)
+            tool_spec = ToolSpec.model_validate(tool_dict)
+            yield tool_spec
