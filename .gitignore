@@ -205,4 +205,5 @@ __marimo__/
 .cursor/
 
 # Example outputs
-examples/*/output/
+examples/*/*output*/
+*.jsonl
