@@ -33,6 +33,12 @@ ToolsGen automates the creation of tool-calling datasets for training and evalua
 ## Installation
 
 ```bash
+pip install toolsgen
+```
+
+Or:
+
+```bash
 git clone https://github.com/atasoglu/toolsgen.git
 cd toolsgen
 pip install .
